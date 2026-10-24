@@ -176,6 +176,17 @@ class OrderItem(SQLModel, table=True):
     order: Order = Relationship(back_populates="items")
 
 
+class MediaFile(SQLModel, table=True):
+    """An uploaded photo, when MEDIA_STORAGE=database."""
+
+    __tablename__ = "media_file"
+
+    name: str = Field(primary_key=True, max_length=120)
+    content_type: str = "image/webp"
+    data: bytes
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 class SiteSetting(SQLModel, table=True):
     key: str = Field(primary_key=True, max_length=60)
     value: str

@@ -5,9 +5,20 @@ from sqlmodel import Session, SQLModel, create_engine
 from app.config import settings
 
 
+def _normalise_url(url: str) -> str:
+    # Hosts such as Neon and Render hand out "postgres://" or "postgresql://" links;
+    # point them at the psycopg 3 driver that is installed.
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
 def _make_engine(url: str):
+    url = _normalise_url(url)
     if not url.startswith("sqlite"):
-        return create_engine(url, pool_pre_ping=True)
+        # Free databases go to sleep and drop idle connections, so each one is checked before use.
+        return create_engine(url, pool_pre_ping=True, pool_recycle=280)
 
     kwargs = {"connect_args": {"check_same_thread": False}}
     if url in ("sqlite://", "sqlite:///:memory:"):

@@ -165,7 +165,7 @@ def main() -> int:
             ]
             for position, data in enumerate(pictures):
                 upload = UploadFile(file=io.BytesIO(data), filename=f"{kind}-{position}.jpg")
-                product.images.append(ProductImage(filename=save_image(upload, "products"), position=position))
+                product.images.append(ProductImage(filename=save_image(session, upload, "products"), position=position))
             session.add(product)
             session.commit()
             print(f"✓ {name}")

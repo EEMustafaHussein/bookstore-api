@@ -282,10 +282,10 @@ async def _save_product(request: Request, session: Session, product: Product | N
     saved: list[str] = []
     try:
         for upload in uploads:
-            saved.append(save_image(upload, "products"))
+            saved.append(save_image(session, upload, "products"))
     except ImageError as exc:
         for name in saved:
-            delete_image(name)
+            delete_image(session, name)
         errors["images"] = str(exc)
         return _product_form(request, session, product, values, errors, status_code=400)
 
@@ -354,10 +354,10 @@ def delete_product(product_id: int, request: Request, session: Session = Depends
     session.exec(update(OrderItem).where(OrderItem.product_id == product.id).values(product_id=None))
     session.exec(delete(CartItem).where(CartItem.product_id == product.id))
     session.delete(product)
-    session.commit()
     for name in names:
         if name not in keep:
-            delete_image(name)
+            delete_image(session, name)
+    session.commit()
     flash(request, "تم حذف المنتج")
     return RedirectResponse("/admin/products", status_code=303)
 
@@ -380,9 +380,9 @@ def delete_product_image(
     for position, remaining in enumerate(product.images):
         remaining.position = position
     session.add(product)
-    session.commit()
     if not _images_used_by_orders(session, [name]):
-        delete_image(name)
+        delete_image(session, name)
+    session.commit()
     flash(request, "تم حذف الصورة")
     return RedirectResponse(f"/admin/products/{product.id}#images", status_code=303)
 
@@ -439,7 +439,7 @@ async def _save_category(request: Request, session: Session, category: Category 
     uploads = uploaded_files(form, "image")
     if error is None and uploads:
         try:
-            new_image = save_image(uploads[0], "categories", max_side=1200)
+            new_image = save_image(session, uploads[0], "categories", max_side=1200)
         except ImageError as exc:
             error = str(exc)
     if error:
@@ -458,9 +458,9 @@ async def _save_category(request: Request, session: Session, category: Category 
     elif forms.checkbox(form, "remove_image"):
         category.image = None
     session.add(category)
-    session.commit()
     if old_image and old_image != category.image:
-        delete_image(old_image)
+        delete_image(session, old_image)
+    session.commit()
     flash(request, f"تمت إضافة القسم «{name}»" if created else f"تم حفظ القسم «{name}»")
     return RedirectResponse("/admin/categories", status_code=303)
 
@@ -486,8 +486,8 @@ def delete_category(category_id: int, request: Request, session: Session = Depen
     image = category.image
     session.exec(update(Product).where(Product.category_id == category.id).values(category_id=None))
     session.delete(category)
+    delete_image(session, image)
     session.commit()
-    delete_image(image)
     flash(request, "تم حذف القسم، وبقيت منتجاته في المتجر بدون قسم")
     return RedirectResponse("/admin/categories", status_code=303)
 

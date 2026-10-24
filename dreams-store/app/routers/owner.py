@@ -260,7 +260,7 @@ async def save_about(request: Request, session: Session = Depends(get_session)):
     uploads = uploaded_files(form, "photo")
     if uploads:
         try:
-            photo = save_image(uploads[0], "about", max_side=900)
+            photo = save_image(session, uploads[0], "about", max_side=900)
         except ImageError as exc:
             flash(request, str(exc), "error")
             return RedirectResponse("/admin/about", status_code=303)
@@ -276,6 +276,8 @@ async def save_about(request: Request, session: Session = Depends(get_session)):
 
     email = forms.text(form, "email", 254)
     phone = forms.text(form, "phone", 30)
+    if old_photo and old_photo != photo:
+        delete_image(session, old_photo)
     save_site_settings(
         session,
         {
@@ -293,7 +295,5 @@ async def save_about(request: Request, session: Session = Depends(get_session)):
             }
         },
     )
-    if old_photo and old_photo != photo:
-        delete_image(old_photo)
     flash(request, "تم حفظ صفحة «من أنا» ✨")
     return RedirectResponse("/admin/about", status_code=303)

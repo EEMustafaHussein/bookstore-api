@@ -1,6 +1,7 @@
 from pathlib import Path
+from typing import Literal
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,6 +25,9 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("BASE_URL", "RENDER_EXTERNAL_URL"),
     )
     media_dir: Path = BASE_DIR / "media"
+    # "disk" keeps photos in media_dir; "database" keeps them inside the database, for free
+    # hosting where files on disk are wiped at every restart.
+    media_storage: Literal["disk", "database"] = "disk"
     max_upload_mb: int = 8
 
     # The owner account is created on first start when these are set.
@@ -41,6 +45,11 @@ class Settings(BaseSettings):
 
     # Simulated card payments for trying the store locally. Never enable it on a live site.
     payment_demo_mode: bool = False
+
+    @field_validator("database_url")
+    @classmethod
+    def _default_when_blank(cls, value: str) -> str:
+        return value.strip() or cls.model_fields["database_url"].default
 
     @property
     def stripe_enabled(self) -> bool:

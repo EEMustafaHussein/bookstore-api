@@ -145,3 +145,41 @@ def test_admin_product_list_filters(client, db):
     assert "قطعة بالة" in client.get("/admin/products?section=bala").text
     hidden = client.get("/admin/products?status=hidden").text
     assert "قطعة مخفية" in hidden and "قطعة بالة" not in hidden
+
+
+def test_photos_can_be_kept_in_the_database(client, db, monkeypatch):
+    from app.models import MediaFile
+
+    monkeypatch.setattr(settings, "media_storage", "database")
+    staff_login(client, db)
+
+    bad = post(
+        client,
+        "/admin/products/new",
+        product_form(),
+        files=[("images", image_file("ok.jpg")), ("images", ("bad.jpg", b"nope", "image/jpeg"))],
+    )
+    assert bad.status_code == 400
+    assert db.exec(select(MediaFile)).first() is None
+
+    post(client, "/admin/products/new", product_form(), files=[("images", image_file("a.jpg")), ("images", image_file("b.jpg"))])
+    product = db.exec(select(Product)).one()
+    first, second = (image.filename for image in product.images)
+    first_id = product.images[0].id
+    assert not any(settings.media_dir.rglob("*.webp"))
+    assert len(db.exec(select(MediaFile)).all()) == 2
+
+    photo = client.get(f"/media/{first}")
+    assert photo.status_code == 200 and photo.headers["content-type"] == "image/webp"
+    assert photo.content[:4] == b"RIFF" and "immutable" in photo.headers["cache-control"]
+
+    post(client, f"/admin/products/{product.id}/images/{first_id}/delete")
+    assert client.get(f"/media/{first}").status_code == 404
+    post(client, f"/admin/products/{product.id}/delete")
+    assert client.get(f"/media/{second}").status_code == 404
+    assert db.exec(select(MediaFile)).first() is None
+
+
+def test_media_route_stays_inside_the_media_folder(client):
+    for path in ["/media/..%2Fapp%2Fconfig.py", "/media/%2E%2E/%2E%2E/etc/passwd", "/media/products/missing.webp"]:
+        assert client.get(path).status_code == 404, path

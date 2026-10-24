@@ -8,7 +8,7 @@ from pathlib import Path
 MEDIA_DIR = Path(tempfile.mkdtemp(prefix="dreams-media-"))
 os.environ.update(
     SECRET_KEY="test-secret-key-that-is-long-enough-123456",
-    DATABASE_URL="sqlite://",
+    DATABASE_URL=os.environ.get("TEST_DATABASE_URL", "sqlite://"),
     MEDIA_DIR=str(MEDIA_DIR),
     PAYMENT_DEMO_MODE="false",
     STRIPE_SECRET_KEY="",

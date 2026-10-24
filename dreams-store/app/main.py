@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from urllib.parse import quote
 
@@ -16,7 +17,7 @@ from app.deps import LoginRequired, populate_state, wants_json
 from app.enums import Role
 from app.forms import email as normalize_email
 from app.models import User
-from app.routers import account, admin, auth, cart, checkout, owner, public
+from app.routers import account, admin, auth, cart, checkout, media, owner, public
 from app.security import hash_password
 from app.templating import render
 
@@ -61,8 +62,24 @@ def bootstrap_owner() -> None:
         logger.info("Owner account ready: %s", email)
 
 
+def check_hosting() -> None:
+    """Render wipes files on every restart, so an SQLite file there would lose the whole shop."""
+    on_render = bool(os.environ.get("RENDER"))
+    if on_render and settings.database_url.startswith("sqlite") and "/var/data/" not in settings.database_url:
+        raise RuntimeError(
+            "DATABASE_URL is not set: on Render the shop needs a PostgreSQL database "
+            "(for example a free Neon link), otherwise every restart deletes all products and orders. "
+            "ضع رابط قاعدة البيانات في DATABASE_URL."
+        )
+    if on_render and settings.media_storage == "disk" and not str(settings.media_dir).startswith("/var/data"):
+        raise RuntimeError(
+            "MEDIA_STORAGE must be 'database' on Render without a disk, otherwise uploaded photos are lost."
+        )
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    check_hosting()
     settings.media_dir.mkdir(parents=True, exist_ok=True)
     create_db_and_tables()
     bootstrap_owner()
@@ -121,11 +138,11 @@ app.add_middleware(
 app.add_middleware(SecurityHeadersMiddleware)
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
 
 for module in (public, auth, cart, checkout, account, admin, owner):
     app.include_router(module.router)
 app.include_router(checkout.webhook_router)
+app.include_router(media.router)
 
 
 def _error_page(request: Request, status_code: int, message: str):

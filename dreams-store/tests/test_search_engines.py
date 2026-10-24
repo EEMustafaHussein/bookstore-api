@@ -60,3 +60,28 @@ def test_base_url_falls_back_to_render_address(monkeypatch):
     assert Settings().base_url == "https://dreams-store.onrender.com"
     monkeypatch.setenv("BASE_URL", "https://dreams.example.com")
     assert Settings().base_url == "https://dreams.example.com"
+
+
+def test_render_requires_lasting_storage(monkeypatch):
+    import pytest
+
+    from app.main import check_hosting
+
+    monkeypatch.setenv("RENDER", "true")
+    monkeypatch.setattr(settings, "database_url", "sqlite:///./dreams.db")
+    with pytest.raises(RuntimeError, match="DATABASE_URL"):
+        check_hosting()
+    monkeypatch.setattr(settings, "database_url", "postgresql://u:p@db.example.com/shop")
+    monkeypatch.setattr(settings, "media_storage", "disk")
+    with pytest.raises(RuntimeError, match="MEDIA_STORAGE"):
+        check_hosting()
+    monkeypatch.setattr(settings, "media_storage", "database")
+    check_hosting()
+    monkeypatch.delenv("RENDER")
+    monkeypatch.setattr(settings, "database_url", "sqlite:///./dreams.db")
+    check_hosting()
+
+
+def test_blank_database_url_uses_local_file(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "")
+    assert Settings().database_url.startswith("sqlite:///")

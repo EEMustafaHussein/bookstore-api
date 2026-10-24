@@ -127,17 +127,28 @@ cp .env.example .env
 
 ## 🌍 النشر على الإنترنت (حتى الناس تلكى المتجر)
 
-### الطريقة الأسهل: Render
-الملف `render.yaml` (في جذر المستودع) جاهز، ويجهّز كل شيء تلقائياً: الخادم، قرص دائم للصور وقاعدة البيانات، HTTPS، ومفتاح سري عشوائي.
+### مجاناً: Render + Neon
+- **Render** يشغّل الموقع (الخطة المجانية).
+- **Neon** قاعدة بيانات PostgreSQL مجانية تحفظ المنتجات والطلبات **والصور** (لأن ملفات Render المجانية تنمسح عند كل إعادة تشغيل).
 
+**1) قاعدة البيانات (Neon):**
+1. سجّل في [neon.tech](https://neon.tech) وأنشئ مشروعاً جديداً (اختر أقرب منطقة، مثل Frankfurt).
+2. من **Connect** انسخ رابط الاتصال، يبدأ بـ `postgresql://` وينتهي بـ `?sslmode=require`.
+
+**2) الموقع (Render):**
 1. ارفع المشروع على GitHub.
 2. سجّل في [render.com](https://render.com) بحساب GitHub.
-3. اختر **New → Blueprint** ثم اختر مستودع `bookstore-api`.
-4. سيطلب منك ثلاث قيم: `OWNER_EMAIL` و `OWNER_PASSWORD` و `OWNER_NAME` — هذا حساب المالك (أنت).
+3. اختر **New → Blueprint** ثم مستودع `bookstore-api` (والفرع الذي فيه الكود).
+4. سيطلب منك:
+   - `DATABASE_URL` ← الصق رابط Neon
+   - `OWNER_EMAIL` و `OWNER_PASSWORD` و `OWNER_NAME` ← حساب المالك (أنت)
 5. اضغط **Apply**. بعد دقائق يصير الموقع على رابط مثل `https://dreams-store.onrender.com`.
 
-> 💰 الخطة المطلوبة **Starter** (حوالي 7$ شهرياً + 0.25$ لكل GB تخزين)، لأن الخطة المجانية في Render
-> لا تدعم القرص الدائم — يعني الصور والطلبات تنمسح عند كل إعادة تشغيل. تأكد من السعر الحالي في صفحة أسعار Render.
+> ℹ️ حدود الخطة المجانية: الموقع «ينام» بعد ربع ساعة بدون زوار، فأول زيارة بعدها تتأخر قرابة دقيقة ثم يصير سريعاً.
+> قاعدة Neon المجانية حجمها 0.5 GB (تكفي تقريباً لأكثر من ألفين صورة لأن المتجر يضغط كل صورة). الحدود قد تتغير، فراجع صفحات أسعار Render و Neon.
+> إذا نسيت `DATABASE_URL` فالموقع يرفض أن يشتغل ويكتب السبب في سجل Render، حتى لا تضيع بيانات المتجر.
+
+**لاحقاً بدون نوم:** خطة Render Starter (حوالي 7$ شهرياً) — التفاصيل في أعلى ملف `render.yaml`.
 
 **دومين خاص (اختياري):** اشترِ دومين مثل `ahlam-dresses.com`، أضفه من إعدادات الخدمة في Render ← Custom Domains،
 ثم أضف متغير البيئة `BASE_URL=https://ahlam-dresses.com`.
@@ -158,8 +169,8 @@ cp .env.example .env
   docker compose up -d --build
   ```
   (البيانات والصور تُحفظ في volumes دائمة. شغّله خلف HTTPS واجعل `COOKIE_SECURE=true`.)
-- لاستخدام PostgreSQL بدلاً من SQLite: `pip install "psycopg[binary]"` ثم
-  `DATABASE_URL=postgresql+psycopg://user:password@host:5432/dreams`
+- لاستخدام PostgreSQL بدلاً من SQLite ضع رابطها في `DATABASE_URL` (مثل `postgresql://user:password@host:5432/dreams`).
+- لحفظ الصور داخل قاعدة البيانات بدل مجلد `media/`: `MEDIA_STORAGE=database`.
 
 ---
 
@@ -169,7 +180,7 @@ cp .env.example .env
 pip install -r requirements-dev.txt
 pytest
 ```
-55 اختباراً تغطي: التسجيل والدخول، الصلاحيات (المالك/المسؤول/الزبونة)، رفع الصور، السلة، إتمام الطلب، المخزون، الدفع التجريبي و Stripe والـ webhook، والإعدادات.
+59 اختباراً تغطي: التسجيل والدخول، الصلاحيات (المالك/المسؤول/الزبونة)، رفع الصور، السلة، إتمام الطلب، المخزون، الدفع التجريبي و Stripe والـ webhook، والإعدادات.
 
 ---
 
