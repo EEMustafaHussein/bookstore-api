@@ -1,6 +1,7 @@
 """Pages only the shop owner can open: the team of admins, shop settings and the about page."""
 
 import math
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -183,6 +184,13 @@ def _whatsapp_link(value: str) -> str:
     return forms.safe_url(value)
 
 
+def _verification_code(value: str) -> str:
+    """Accepts the bare code or the whole <meta> tag Google shows, and keeps only the code."""
+    match = re.search(r'content\s*=\s*["\']([^"\']+)["\']', value)
+    code = match.group(1) if match else value
+    return code if re.fullmatch(r"[A-Za-z0-9_\-]{10,100}", code) else ""
+
+
 @router.get("/settings")
 def settings_page(request: Request):
     return render(request, "admin/settings.html", {"active": "settings"})
@@ -221,6 +229,7 @@ async def save_settings(request: Request, session: Session = Depends(get_session
             "contact_email": (forms.email(contact_email) or "") if contact_email else "",
             "address": forms.text(form, "address", 150),
             "currency_symbol": forms.text(form, "currency_symbol", 10) or "د.ع",
+            "google_verification": _verification_code(forms.text(form, "google_verification", 300)),
             "shipping_fee": min(shipping_fee, 10_000_000),
             "free_shipping_over": min(free_over, 1_000_000_000),
             "social": social,

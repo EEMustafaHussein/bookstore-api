@@ -1,11 +1,13 @@
 import math
+from xml.sax.saxutils import escape as xml_escape
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy import case, func, or_
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
+from app.config import settings
 from app.database import get_by_id, get_session
 from app.deps import request_context
 from app.enums import Section
@@ -202,4 +204,27 @@ def about(request: Request):
 
 @router.get("/robots.txt", response_class=PlainTextResponse)
 def robots():
-    return "User-agent: *\nDisallow: /admin\nDisallow: /account\nDisallow: /checkout\nDisallow: /cart\n"
+    return (
+        "User-agent: *\nDisallow: /admin\nDisallow: /account\nDisallow: /checkout\nDisallow: /cart\n"
+        f"Sitemap: {settings.base_url.rstrip('/')}/sitemap.xml\n"
+    )
+
+
+@router.get("/sitemap.xml")
+def sitemap(session: Session = Depends(get_session)):
+    """Lists every public page so search engines can find the whole shop."""
+    base = settings.base_url.rstrip("/")
+    entries = [(f"{base}{path}", None) for path in ("/", "/shop", "/shop?section=new", "/bala", "/about")]
+    for category_id in session.exec(select(Category.id).order_by(Category.sort_order)).all():
+        entries.append((f"{base}/shop?category={category_id}", None))
+    for product_id, updated in session.exec(
+        select(Product.id, Product.updated_at).where(Product.is_published.is_(True)).order_by(Product.id)
+    ).all():
+        entries.append((f"{base}/product/{product_id}", updated))
+
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for url, updated in entries:
+        lastmod = f"<lastmod>{updated.date().isoformat()}</lastmod>" if updated else ""
+        lines.append(f"<url><loc>{xml_escape(url)}</loc>{lastmod}</url>")
+    lines.append("</urlset>")
+    return Response("\n".join(lines), media_type="application/xml")

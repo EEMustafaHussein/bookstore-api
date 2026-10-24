@@ -5,6 +5,26 @@
 {% block description %}{{ (product.description or product.name)|truncate(150) }}{% endblock %}
 {% block og_image %}{% if product.cover %}<meta property="og:image" content="{{ settings.base_url.rstrip('/') }}{{ product.cover|media }}">{% endif %}{% endblock %}
 {% block body_class %}page-product {{ 'is-bala' if is_bala }}{% endblock %}
+{% block structured_data %}
+{% set base = settings.base_url.rstrip('/') %}
+{% set image_urls = [] %}{% for image in product.images %}{% set _ = image_urls.append(base ~ (image.filename|media)) %}{% endfor %}
+<script type="application/ld+json">{{ {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": product.name,
+  "description": product.description or product.name,
+  "image": image_urls,
+  "category": product.category.name if product.category else SECTION_LABELS[product.section],
+  "offers": {
+    "@type": "Offer",
+    "url": base ~ "/product/" ~ product.id,
+    "price": product.price,
+    "priceCurrency": "IQD",
+    "availability": "https://schema.org/InStock" if product.in_stock else "https://schema.org/OutOfStock",
+    "itemCondition": "https://schema.org/UsedCondition" if is_bala else "https://schema.org/NewCondition"
+  }
+}|tojson }}</script>
+{% endblock %}
 
 {% block content %}
 <section class="container product-page">

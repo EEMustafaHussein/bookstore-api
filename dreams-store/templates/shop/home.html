@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% from "partials/macros.html" import icon, product_card, social_links with context %}
 {% block body_class %}page-home has-hero{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">{{ {
+  "@context": "https://schema.org",
+  "@type": "ClothingStore",
+  "name": site.site_name,
+  "description": site.hero_subtitle,
+  "url": settings.base_url.rstrip('/') ~ "/",
+  "address": site.address,
+  "sameAs": site.social.values()|select|list
+}|tojson }}</script>
+{% endblock %}
 
 {% block content %}
 <section class="hero" data-hero>

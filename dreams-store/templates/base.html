@@ -11,6 +11,8 @@
   <meta property="og:title" content="{{ self.title() }}">
   <meta property="og:description" content="{{ self.description() }}">
   {% block og_image %}{% endblock %}
+  {% if site.google_verification %}<meta name="google-site-verification" content="{{ site.google_verification }}">{% endif %}
+  {% block structured_data %}{% endblock %}
   <link rel="icon" href="{{ asset('img/favicon.svg') }}" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

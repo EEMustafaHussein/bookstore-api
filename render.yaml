@@ -1,0 +1,36 @@
+# Render Blueprint for the "ملابس الأحلام" store (dreams-store/).
+# Render → New → Blueprint → pick this repository. See dreams-store/README.md.
+services:
+  - type: web
+    name: dreams-store
+    runtime: python
+    rootDir: dreams-store
+    # Uploaded photos and the database live on the disk below, and only paid plans can have a disk.
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips '*'
+    healthCheckPath: /robots.txt
+    disk:
+      name: shop-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:////var/data/dreams.db
+      - key: MEDIA_DIR
+        value: /var/data/media
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: PAYMENT_DEMO_MODE
+        value: "false"
+      # Asked for when the Blueprint is created: the owner account made on first start.
+      - key: OWNER_EMAIL
+        sync: false
+      - key: OWNER_PASSWORD
+        sync: false
+      - key: OWNER_NAME
+        sync: false

@@ -35,6 +35,15 @@
         </div>
         <div class="field"><label for="s-address">العنوان</label><input id="s-address" name="address" value="{{ site.address }}" maxlength="150"></div>
       </section>
+
+      <section class="panel">
+        <h2 class="panel-title">{{ icon('search') }} الظهور في بحث Google</h2>
+        <div class="field">
+          <label for="s-google">رمز التحقق من Google Search Console</label>
+          <input id="s-google" name="google_verification" value="{{ site.google_verification }}" dir="ltr" maxlength="300" placeholder='<meta name="google-site-verification" content="...">'>
+          <p class="field-hint">من Google Search Console اختر طريقة «HTML tag» والصق الوسم كاملاً هنا، ثم أرسل خريطة الموقع: <span dir="ltr">{{ settings.base_url.rstrip('/') }}/sitemap.xml</span></p>
+        </div>
+      </section>
     </div>
 
     <section class="panel sticky-panel">

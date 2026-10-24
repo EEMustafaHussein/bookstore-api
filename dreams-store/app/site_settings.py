@@ -32,6 +32,8 @@ DEFAULTS: dict = {
     "shipping_fee": 5000,
     "free_shipping_over": 100000,
     "currency_symbol": "د.ع",
+    # The code from Google Search Console's "HTML tag" verification method.
+    "google_verification": "",
     "social": {key: "" for key, _ in SOCIAL_PLATFORMS},
     "about": {
         "name": "اسم المصمم",

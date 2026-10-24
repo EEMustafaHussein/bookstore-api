@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,8 +17,12 @@ class Settings(BaseSettings):
 
     # Set to true when the site is served over HTTPS so cookies are never sent in clear text.
     cookie_secure: bool = False
-    # Public address of the site, used for payment return links.
-    base_url: str = "http://localhost:8000"
+    # Public address of the site, used for payment return links and the sitemap.
+    # On Render it falls back to the address Render gives the service.
+    base_url: str = Field(
+        default="http://localhost:8000",
+        validation_alias=AliasChoices("BASE_URL", "RENDER_EXTERNAL_URL"),
+    )
     media_dir: Path = BASE_DIR / "media"
     max_upload_mb: int = 8
 
