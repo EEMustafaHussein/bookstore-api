@@ -18,7 +18,11 @@ def _make_engine(url: str):
     url = _normalise_url(url)
     if not url.startswith("sqlite"):
         # Free databases go to sleep and drop idle connections, so each one is checked before use.
-        return create_engine(url, pool_pre_ping=True, pool_recycle=280)
+        connect_args = {}
+        if url.startswith("postgresql+psycopg"):
+            # Pooled links (such as Neon's default one) cannot keep prepared statements.
+            connect_args["prepare_threshold"] = None
+        return create_engine(url, pool_pre_ping=True, pool_recycle=280, connect_args=connect_args)
 
     kwargs = {"connect_args": {"check_same_thread": False}}
     if url in ("sqlite://", "sqlite:///:memory:"):
