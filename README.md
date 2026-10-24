@@ -20,3 +20,11 @@ A robust and secure RESTful API built with **FastAPI** and **SQLModel**, designe
    ```bash
    git clone [https://github.com/your-username/bookstore-api.git](https://github.com/your-username/bookstore-api.git)
    cd bookstore-api
+   ```
+
+---
+
+## ✨ مشروع جديد: متجر «ملابس الأحلام»
+
+متجر ملابس نسائية كامل (جديد + بالة) مع لوحة تحكم وصلاحيات ودفع بالبطاقة موجود في المجلد
+[`dreams-store/`](dreams-store/README.md) — اقرأ [README المتجر](dreams-store/README.md) لطريقة التشغيل.

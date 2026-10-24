@@ -1,0 +1,62 @@
+{% extends "admin/base.html" %}
+{% from "partials/macros.html" import icon, csrf with context %}
+{% block title %}الأقسام{% endblock %}
+{% block heading %}الأقسام{% endblock %}
+{% block subheading %}<p>رتّب المتجر: فساتين، عبايات، بلايز… وتظهر الأقسام للزبائن في الصفحة الرئيسية والمتجر.</p>{% endblock %}
+
+{% block content %}
+<div class="admin-cols admin-cols-wide">
+  <section class="panel">
+    <h2 class="panel-title">{{ icon('plus') }} قسم جديد</h2>
+    <form method="post" action="/admin/categories" enctype="multipart/form-data" class="stack">
+      {{ csrf() }}
+      <div class="field"><label for="new-name">اسم القسم <span class="req">*</span></label><input id="new-name" name="name" required maxlength="60" placeholder="مثال: فساتين سهرة"></div>
+      <div class="field"><label for="new-desc">وصف قصير</label><input id="new-desc" name="description" maxlength="300" placeholder="اختياري"></div>
+      <div class="form-grid">
+        <div class="field"><label for="new-order">الترتيب</label><input id="new-order" name="sort_order" inputmode="numeric" dir="ltr" value="{{ rows|length + 1 }}"></div>
+        <div class="field"><label for="new-image">صورة القسم</label><input id="new-image" type="file" name="image" accept="image/*" class="file-input"></div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">{{ icon('plus') }} إضافة القسم</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">{{ icon('tag') }} الأقسام الحالية ({{ rows|length }})</h2>
+    {% if rows %}
+    <ul class="category-admin-list">
+      {% for category, count in rows %}
+      <li>
+        <details>
+          <summary>
+            <span class="cat-thumb">{% if category.image %}<img src="{{ category.image|media }}" alt="">{% else %}{{ icon('tag') }}{% endif %}</span>
+            <span class="cat-info"><strong>{{ category.name }}</strong><small>{{ count }} منتج · الترتيب {{ category.sort_order }}</small></span>
+            <span class="cat-actions">
+              <a href="/shop?category={{ category.id }}" target="_blank" rel="noopener" class="icon-btn" title="عرض" aria-label="عرض">{{ icon('eye') }}</a>
+              <span class="icon-btn" aria-hidden="true">{{ icon('edit') }}</span>
+            </span>
+          </summary>
+          <form method="post" action="/admin/categories/{{ category.id }}" enctype="multipart/form-data" class="stack cat-edit">
+            {{ csrf() }}
+            <div class="field"><label for="c{{ category.id }}-name">الاسم</label><input id="c{{ category.id }}-name" name="name" value="{{ category.name }}" required maxlength="60"></div>
+            <div class="field"><label for="c{{ category.id }}-desc">الوصف</label><input id="c{{ category.id }}-desc" name="description" value="{{ category.description }}" maxlength="300"></div>
+            <div class="form-grid">
+              <div class="field"><label for="c{{ category.id }}-order">الترتيب</label><input id="c{{ category.id }}-order" name="sort_order" value="{{ category.sort_order }}" inputmode="numeric" dir="ltr"></div>
+              <div class="field"><label for="c{{ category.id }}-image">صورة جديدة</label><input id="c{{ category.id }}-image" type="file" name="image" accept="image/*" class="file-input"></div>
+            </div>
+            {% if category.image %}<label class="check"><input type="checkbox" name="remove_image"> حذف الصورة الحالية</label>{% endif %}
+            <div class="row-actions">
+              <button type="submit" class="btn btn-primary btn-sm">حفظ</button>
+              <button type="submit" form="delete-cat-{{ category.id }}" class="btn btn-link btn-danger btn-sm">{{ icon('trash') }} حذف القسم</button>
+            </div>
+          </form>
+          <form id="delete-cat-{{ category.id }}" method="post" action="/admin/categories/{{ category.id }}/delete" data-confirm="حذف قسم «{{ category.name }}»؟ ستبقى منتجاته في المتجر بدون قسم." hidden>{{ csrf() }}</form>
+        </details>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="panel-empty">{{ icon('tag') }} لا توجد أقسام بعد. أضف أول قسم من النموذج.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

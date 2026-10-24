@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon with context %}
+{% block title %}{% if category %}{{ category.name }}{% elif section %}{{ SECTION_LABELS[section] }}{% else %}كل المنتجات{% endif %} — {{ site.site_name }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="aurora aurora-soft" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="container page-hero-inner">
+    <nav class="breadcrumbs" aria-label="مسار الصفحة"><a href="/">الرئيسية</a><span>/</span><span>{{ 'المتجر' if not section else SECTION_LABELS[section] }}</span></nav>
+    <h1 class="page-title" data-split>{% if category %}{{ category.name }}{% elif section == Section.new %}وصل حديثاً{% else %}كل المنتجات{% endif %}</h1>
+    <p class="page-sub">{% if category and category.description %}{{ category.description }}{% else %}{{ total }} قطعة مختارة بعناية لأجلكِ{% endif %}</p>
+    <div class="section-switch" role="tablist">
+      {% set keep = dict(filters) %}{% set _ = keep.pop('section', none) %}{% set _ = keep.pop('page', none) %}
+      <a href="/shop?{{ keep|urlencode }}" class="{{ 'is-active' if not section }}">الكل</a>
+      {% set q = dict(keep, section='new') %}<a href="/shop?{{ q|urlencode }}" class="{{ 'is-active' if section == Section.new }}">الجديد</a>
+      <a href="/bala?{{ keep|urlencode }}">البالة ✦</a>
+    </div>
+  </div>
+</section>
+
+<section class="container section section-tight">
+  {% include "shop/_listing.html" %}
+</section>
+{% endblock %}

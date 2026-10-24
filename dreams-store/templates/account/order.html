@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, csrf, status_pill with context %}
+{% block title %}طلب رقم #{{ order.id }} — {{ site.site_name }}{% endblock %}
+
+{% block content %}
+<section class="container section section-tight order-page" {% if placed %}data-celebrate{% endif %}>
+  {% if placed %}
+  <div class="celebrate reveal">
+    <div class="celebrate-orb">{{ icon('check') }}</div>
+    <h1>شكراً لكِ! تم استلام طلبكِ 🎉</h1>
+    <p>رقم طلبكِ <strong>#{{ order.id }}</strong>. سنتواصل معكِ على الرقم <span dir="ltr">{{ order.phone }}</span> لتأكيد الطلب وموعد التوصيل.</p>
+    <a href="/shop" class="btn btn-outline">متابعة التسوق</a>
+  </div>
+  {% endif %}
+
+  <header class="page-head order-head reveal">
+    <nav class="breadcrumbs" aria-label="مسار الصفحة"><a href="/account">حسابي</a><span>/</span><span>طلب #{{ order.id }}</span></nav>
+    <div class="order-head-row">
+      <h2 class="page-title">طلب رقم <em>#{{ order.id }}</em></h2>
+      {{ status_pill(order) }}
+    </div>
+    <p class="page-sub">{{ order.created_at|local_dt }}</p>
+  </header>
+
+  {% if order.status == OrderStatus.awaiting_payment %}
+  <div class="notice notice-warn pay-now">
+    {{ icon('card') }}
+    <p>طلبكِ بانتظار الدفع بالبطاقة. القطع محجوزة لكِ لمدة ساعة واحدة فقط.</p>
+    <a href="/checkout/pay/{{ order.id }}" class="btn btn-primary btn-sm">ادفعي الآن</a>
+  </div>
+  {% endif %}
+
+  {% if order.status != OrderStatus.cancelled and order.status != OrderStatus.awaiting_payment %}
+  {% set flow = [OrderStatus.new, OrderStatus.confirmed, OrderStatus.shipped, OrderStatus.delivered] %}
+  {% set current_index = flow.index(order.status) %}
+  <ol class="timeline reveal">
+    {% for step in flow %}
+    <li class="{{ 'is-done' if loop.index0 < current_index }} {{ 'is-current' if loop.index0 == current_index }}">
+      <span class="timeline-dot">{{ icon(['receipt', 'check', 'truck', 'heart'][loop.index0]) }}</span>
+      <span>{{ ORDER_STATUS_LABELS[step] }}</span>
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+
+  <div class="order-layout">
+    <div class="form-card">
+      <h3 class="block-title">{{ icon('bag') }} القطع</h3>
+      <ul class="mini-lines">
+        {% for item in order.items %}
+        <li>
+          <span class="mini-thumb"><img src="{{ item.image|media }}" alt="" loading="lazy"><b>{{ item.quantity }}</b></span>
+          <span class="mini-info">
+            {% if item.product_id %}<a href="/product/{{ item.product_id }}"><strong>{{ item.product_name }}</strong></a>{% else %}<strong>{{ item.product_name }}</strong>{% endif %}
+            <small>{{ item.unit_price|money }}{% if item.size %} · {{ item.size }}{% endif %}{% if item.color %} · {{ item.color }}{% endif %}</small>
+          </span>
+          <span class="mini-price">{{ item.line_total|money }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <div class="summary-row"><span>المجموع</span><span>{{ order.subtotal|money }}</span></div>
+      <div class="summary-row"><span>التوصيل</span><span>{{ order.shipping_fee|money if order.shipping_fee else 'مجاني' }}</span></div>
+      <div class="summary-row summary-total"><span>الإجمالي</span><strong>{{ order.total|money }}</strong></div>
+    </div>
+
+    <aside class="order-side">
+      <div class="form-card">
+        <h3 class="block-title">{{ icon('pin') }} التوصيل إلى</h3>
+        <p class="address-block"><strong>{{ order.full_name }}</strong><br><span dir="ltr">{{ order.phone }}</span><br>{{ order.governorate }} — {{ order.city }}<br>{{ order.address }}</p>
+        {% if order.notes %}<p class="muted">ملاحظات: {{ order.notes }}</p>{% endif %}
+      </div>
+      <div class="form-card">
+        <h3 class="block-title">{{ icon('card') }} الدفع</h3>
+        <p>{{ PAYMENT_METHOD_LABELS[order.payment_method] }}</p>
+        <p><span class="pill {{ 'pill-delivered' if order.payment_status == PaymentStatus.paid else 'pill-new' }}">{{ PAYMENT_STATUS_LABELS[order.payment_status] }}</span></p>
+      </div>
+      {% if order.can_be_cancelled_by_customer %}
+      <form method="post" action="/account/orders/{{ order.id }}/cancel" data-confirm="هل تريدين إلغاء هذا الطلب؟">
+        {{ csrf() }}
+        <button type="submit" class="btn btn-link btn-danger btn-block">{{ icon('close') }} إلغاء الطلب</button>
+      </form>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+{% endblock %}

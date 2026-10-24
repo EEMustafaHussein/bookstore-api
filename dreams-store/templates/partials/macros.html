@@ -1,0 +1,86 @@
+{% macro icon(name, cls="") -%}
+<svg class="icon {{ cls }}" aria-hidden="true" focusable="false"><use href="{{ asset('img/icons.svg') }}#{{ name }}"></use></svg>
+{%- endmacro %}
+
+{% macro csrf() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{%- endmacro %}
+
+{% macro social_links(site, cls="") -%}
+{% set links = [] %}
+{% for key, label in SOCIAL_PLATFORMS %}{% if site.social.get(key) %}{% set _ = links.append((key, label)) %}{% endif %}{% endfor %}
+{% if links %}
+<ul class="social {{ cls }}">
+  {% for key, label in links %}
+  <li><a href="{{ site.social[key] }}" target="_blank" rel="noopener noreferrer" aria-label="{{ label }}" class="social-{{ key }}" title="{{ label }}">{{ icon(key) }}</a></li>
+  {% endfor %}
+</ul>
+{% endif %}
+{%- endmacro %}
+
+{% macro product_card(p, index=0, style="") -%}
+{% set is_bala = p.section == Section.bala %}
+<article class="product-card {{ 'product-card--polaroid' if style == 'polaroid' }} reveal" style="--i: {{ index % 4 }}; --r: {{ [-3, 2.2, -1.4, 3, -2.2, 1.6][index % 6] }}deg">
+  <div class="product-visual" data-tilt>
+    <a href="/product/{{ p.id }}" class="product-media" aria-label="{{ p.name }}">
+      <img class="img-main" src="{{ p.cover|media }}" alt="{{ p.name }}" loading="lazy" decoding="async">
+      {% if p.hover_image %}<img class="img-hover" src="{{ p.hover_image|media }}" alt="" loading="lazy" decoding="async">{% endif %}
+      <span class="badges">
+        {% if is_bala %}<span class="badge badge-bala">بالة ✦ قطعة فريدة</span>{% endif %}
+        {% if p.discount_percent %}<span class="badge badge-sale">خصم {{ p.discount_percent }}%</span>{% endif %}
+        {% if not p.in_stock %}<span class="badge badge-out">نفدت الكمية</span>{% elif p.stock <= 2 and not is_bala %}<span class="badge badge-low">آخر {{ p.stock }}</span>{% endif %}
+      </span>
+    </a>
+    {% if style == 'polaroid' %}<span class="tape" aria-hidden="true"></span>{% endif %}
+    {% if p.in_stock %}
+      {% if p.size_list|length <= 1 and p.color_list|length <= 1 %}
+      <form class="quick-add" method="post" action="/cart/add" data-add-to-cart>
+        {{ csrf() }}
+        <input type="hidden" name="product_id" value="{{ p.id }}">
+        <input type="hidden" name="quantity" value="1">
+        {% if p.size_list %}<input type="hidden" name="size" value="{{ p.size_list[0] }}">{% endif %}
+        {% if p.color_list %}<input type="hidden" name="color" value="{{ p.color_list[0] }}">{% endif %}
+        <button type="submit" class="quick-add-btn" aria-label="أضيفي {{ p.name }} إلى السلة">{{ icon('bag-plus') }}<span>أضيفي للسلة</span></button>
+      </form>
+      {% else %}
+      <a class="quick-add quick-add-btn" href="/product/{{ p.id }}" tabindex="-1">{{ icon('sparkle') }}<span>اختاري المقاس</span></a>
+      {% endif %}
+    {% endif %}
+  </div>
+  <div class="product-info">
+    {% if p.category %}<span class="product-cat">{{ p.category.name }}</span>{% endif %}
+    <h3 class="product-name"><a href="/product/{{ p.id }}">{{ p.name }}</a></h3>
+    <div class="price-row">
+      <span class="price">{{ p.price|money }}</span>
+      {% if p.discount_percent %}<del class="old-price">{{ p.old_price|money }}</del>{% endif %}
+    </div>
+  </div>
+</article>
+{%- endmacro %}
+
+{% macro pagination(page, pages, base, filters) -%}
+{% if pages > 1 %}
+<nav class="pagination" aria-label="الصفحات">
+  {% if page > 1 %}{% set q = dict(filters, page=page - 1) %}<a class="page-link" href="{{ base }}?{{ q|urlencode }}" aria-label="السابق">{{ icon('chevron-right') }}</a>{% endif %}
+  {% for n in range(1, pages + 1) %}
+    {% if n == 1 or n == pages or (n - page)|abs <= 1 %}
+      {% set q = dict(filters, page=n) %}
+      <a class="page-link {{ 'is-current' if n == page }}" href="{{ base }}?{{ q|urlencode }}" {% if n == page %}aria-current="page"{% endif %}>{{ n }}</a>
+    {% elif (n - page)|abs == 2 %}<span class="page-gap">…</span>{% endif %}
+  {% endfor %}
+  {% if page < pages %}{% set q = dict(filters, page=page + 1) %}<a class="page-link" href="{{ base }}?{{ q|urlencode }}" aria-label="التالي">{{ icon('chevron-left') }}</a>{% endif %}
+</nav>
+{% endif %}
+{%- endmacro %}
+
+{% macro field(name, label, value="", errors={}, type="text", required=false, attrs="", hint="", autocomplete="") -%}
+<div class="field {{ 'has-error' if errors.get(name) }}">
+  <label for="f-{{ name }}">{{ label }}{% if required %} <span class="req">*</span>{% endif %}</label>
+  <input id="f-{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %} {{ attrs|safe }}>
+  {% if errors.get(name) %}<p class="field-error">{{ errors[name] }}</p>{% elif hint %}<p class="field-hint">{{ hint }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro status_pill(order) -%}
+<span class="pill pill-{{ order.status.value }}">{{ ORDER_STATUS_LABELS[order.status] }}</span>
+{%- endmacro %}

@@ -1,0 +1,41 @@
+{% from "partials/macros.html" import icon, product_card, pagination with context %}
+{% set base = request.url.path %}
+<div class="toolbar reveal">
+  <div class="chips" role="list">
+    {% set keep = dict(filters) %}{% set _ = keep.pop('category', none) %}{% set _ = keep.pop('page', none) %}
+    <a role="listitem" class="chip {{ 'is-active' if not category }}" href="{{ base }}?{{ keep|urlencode }}">الكل</a>
+    {% for c in categories %}
+    {% set q = dict(keep, category=c.id) %}
+    <a role="listitem" class="chip {{ 'is-active' if category and category.id == c.id }}" href="{{ base }}?{{ q|urlencode }}">{{ c.name }}</a>
+    {% endfor %}
+  </div>
+  <form class="sort-form" method="get" action="{{ base }}" data-autosubmit>
+    {% for key, value in filters.items() if key not in ('sort', 'page') %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    <label for="sort" class="sr-only">الترتيب</label>
+    <div class="select-wrap">
+      {{ icon('sort') }}
+      <select id="sort" name="sort">
+        {% for key, label in sorts.items() %}<option value="{{ key }}" {% if key == sort %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <noscript><button class="btn btn-sm btn-outline" type="submit">ترتيب</button></noscript>
+  </form>
+</div>
+
+{% if query %}
+<p class="result-note">نتائج البحث عن «<strong>{{ query }}</strong>»: {{ total }} قطعة — <a href="{{ base }}">مسح البحث</a></p>
+{% endif %}
+
+{% if products %}
+<div class="product-grid {{ 'product-grid--polaroid' if card_style == 'polaroid' }}">
+  {% for p in products %}{{ product_card(p, loop.index0, card_style or '') }}{% endfor %}
+</div>
+{{ pagination(page, pages, base, filters) }}
+{% else %}
+<div class="empty-state reveal">
+  <div class="empty-orb">{{ icon('search') }}</div>
+  <h3>لا توجد قطع هنا حالياً</h3>
+  <p>جرّبي قسماً آخر أو كلمة بحث مختلفة، فالقطع الجديدة تُضاف باستمرار.</p>
+  <a href="/shop" class="btn btn-outline">عرض كل المنتجات</a>
+</div>
+{% endif %}

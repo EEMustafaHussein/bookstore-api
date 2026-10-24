@@ -1,0 +1,106 @@
+{% extends "admin/base.html" %}
+{% from "partials/macros.html" import icon, csrf, pagination with context %}
+{% block title %}المسؤولون والحسابات{% endblock %}
+{% block heading %}المسؤولون والحسابات{% endblock %}
+{% block subheading %}<p>صاحب المتجر فقط يستطيع إضافة المسؤولين أو إزالتهم.</p>{% endblock %}
+
+{% block content %}
+<div class="admin-cols admin-cols-wide">
+  <section class="panel">
+    <h2 class="panel-title">{{ icon('plus') }} إضافة مسؤول جديد</h2>
+    <p class="muted">المسؤول يستطيع نشر المنتجات وتعديلها وحذفها، وإدارة الأقسام والطلبات. لا يستطيع إضافة مسؤولين أو حذفهم أو تغيير إعدادات المتجر.</p>
+    <form method="post" action="/admin/team/admins" class="stack" autocomplete="off">
+      {{ csrf() }}
+      <div class="field"><label for="a-name">الاسم <span class="req">*</span></label><input id="a-name" name="name" required maxlength="80"></div>
+      <div class="field"><label for="a-email">البريد الإلكتروني <span class="req">*</span></label><input id="a-email" name="email" type="email" required maxlength="254" dir="ltr"></div>
+      <div class="field">
+        <label for="a-password">كلمة المرور <span class="req">*</span></label>
+        <div class="password-wrap">
+          <input id="a-password" name="password" type="password" required minlength="8" maxlength="128" dir="ltr" autocomplete="new-password">
+          <button type="button" class="icon-btn" data-toggle-password aria-label="إظهار كلمة المرور">{{ icon('eye') }}</button>
+        </div>
+        <p class="field-hint">أعطها للمسؤول ليسجّل الدخول، ويستطيع تغييرها من حسابه.</p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">{{ icon('plus') }} إضافة المسؤول</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">{{ icon('shield') }} فريق الإدارة ({{ admins|length }})</h2>
+    <ul class="team-list">
+      {% for member in admins %}
+      <li>
+        <span class="avatar avatar-sm {{ 'avatar-owner' if member.is_owner }}">{{ member.name|initials }}</span>
+        <span class="team-info"><strong>{{ member.name }} {% if member.id == current_user.id %}<small class="muted">(أنت)</small>{% endif %}</strong><small dir="ltr">{{ member.email }}</small></span>
+        <span class="pill {{ 'pill-owner' if member.is_owner else 'pill-confirmed' }}">{{ ROLE_LABELS[member.role] }}</span>
+        {% if not member.is_owner %}
+        <form method="post" action="/admin/team/{{ member.id }}/role" data-confirm="إزالة «{{ member.name }}» من المسؤولين؟ سيبقى حسابه كزبون عادي.">
+          {{ csrf() }}<input type="hidden" name="role" value="customer">
+          <button type="submit" class="btn btn-link btn-danger btn-sm">{{ icon('close') }} إزالة</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<section class="panel">
+  <header class="panel-head">
+    <h2>{{ icon('users') }} كل الحسابات ({{ total }})</h2>
+  </header>
+  <form method="get" action="/admin/team" class="filter-bar">
+    <div class="search-field">{{ icon('search') }}<input type="search" name="q" value="{{ filters.get('q', '') }}" placeholder="الاسم، البريد أو الهاتف" maxlength="80"></div>
+    <div class="select-wrap">
+      <select name="role" aria-label="الصلاحية">
+        <option value="">كل الصلاحيات</option>
+        {% for role in Role %}<option value="{{ role.value }}" {% if filters.get('role') == role.value %}selected{% endif %}>{{ ROLE_LABELS[role] }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-outline btn-sm">بحث</button>
+  </form>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>الحساب</th><th>الصلاحية</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+      <tbody>
+        {% for member in users %}
+        <tr class="{{ 'row-muted' if not member.is_active }}">
+          <td data-label="الحساب"><strong>{{ member.name }}</strong><small class="muted block" dir="ltr">{{ member.email }}{% if member.phone %} · {{ member.phone }}{% endif %}</small></td>
+          <td data-label="الصلاحية"><span class="pill {{ 'pill-owner' if member.is_owner else ('pill-confirmed' if member.role == Role.admin else 'pill-plain') }}">{{ ROLE_LABELS[member.role] }}</span></td>
+          <td data-label="الحالة">{{ 'فعّال' if member.is_active else 'موقوف' }}</td>
+          <td data-label="إجراءات">
+            {% if member.is_owner %}
+            <span class="muted small">صاحب المتجر</span>
+            {% else %}
+            <div class="row-actions">
+              <form method="post" action="/admin/team/{{ member.id }}/role">
+                {{ csrf() }}
+                {% if member.role == Role.admin %}
+                <input type="hidden" name="role" value="customer"><button type="submit" class="btn btn-link btn-sm">إزالة من المسؤولين</button>
+                {% else %}
+                <input type="hidden" name="role" value="admin"><button type="submit" class="btn btn-link btn-sm">{{ icon('shield') }} اجعله مسؤولاً</button>
+                {% endif %}
+              </form>
+              <form method="post" action="/admin/team/{{ member.id }}/active" {% if member.is_active %}data-confirm="إيقاف حساب «{{ member.name }}»؟ لن يستطيع تسجيل الدخول."{% endif %}>
+                {{ csrf() }}<button type="submit" class="btn btn-link btn-sm {{ 'btn-danger' if member.is_active }}">{{ 'إيقاف' if member.is_active else 'تفعيل' }}</button>
+              </form>
+              <details class="inline-details">
+                <summary class="btn btn-link btn-sm">كلمة مرور جديدة</summary>
+                <form method="post" action="/admin/team/{{ member.id }}/password" class="inline-form">
+                  {{ csrf() }}
+                  <input name="password" type="text" required minlength="8" maxlength="128" dir="ltr" placeholder="كلمة المرور الجديدة" autocomplete="off" aria-label="كلمة المرور الجديدة">
+                  <button type="submit" class="btn btn-primary btn-sm">تعيين</button>
+                </form>
+              </details>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ pagination(page, pages, '/admin/team', filters) }}
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% from "partials/macros.html" import icon with context %}
+<div class="drawer-backdrop" data-drawer-backdrop hidden></div>
+<aside class="cart-drawer" data-cart-drawer aria-hidden="true" aria-label="سلة التسوق" tabindex="-1">
+  <header class="drawer-head">
+    <h2>{{ icon('bag') }} سلتكِ</h2>
+    <button type="button" class="icon-btn" data-drawer-close aria-label="إغلاق السلة">{{ icon('close') }}</button>
+  </header>
+  <div class="drawer-shipping" data-drawer-shipping hidden>
+    <p data-drawer-shipping-text></p>
+    <div class="progress"><span data-drawer-progress></span></div>
+  </div>
+  <div class="drawer-body" data-drawer-body>
+    <div class="drawer-loading"><span></span><span></span><span></span></div>
+  </div>
+  <footer class="drawer-foot" data-drawer-foot hidden>
+    <div class="drawer-row"><span>المجموع</span><strong data-drawer-subtotal></strong></div>
+    <div class="drawer-row muted"><span>التوصيل</span><span data-drawer-shippingfee></span></div>
+    <div class="drawer-row total"><span>الإجمالي</span><strong data-drawer-total></strong></div>
+    <a href="/checkout" class="btn btn-primary btn-block btn-shine">إتمام الطلب {{ icon('arrow-left') }}</a>
+    <a href="/cart" class="btn btn-link btn-block">عرض السلة كاملة</a>
+  </footer>
+  <template data-drawer-empty>
+    <div class="empty-mini">
+      <div class="empty-orb">{{ icon('bag') }}</div>
+      <p>سلتكِ فارغة حالياً</p>
+      <a href="/shop" class="btn btn-outline btn-sm">ابدئي التسوق</a>
+    </div>
+  </template>
+</aside>
+
+<div class="search-overlay" data-search aria-hidden="true">
+  <button type="button" class="icon-btn search-close" data-search-close aria-label="إغلاق البحث">{{ icon('close') }}</button>
+  <form class="search-box" action="/shop" method="get" role="search">
+    <label for="site-search" class="search-label">عن ماذا تبحثين اليوم؟</label>
+    <div class="search-input">
+      {{ icon('search') }}
+      <input id="site-search" type="search" name="q" placeholder="فستان سهرة، عباية، بلوزة…" autocomplete="off" maxlength="80">
+      <button type="submit" class="btn btn-primary btn-sm">بحث</button>
+    </div>
+    <div class="search-suggest">
+      <a href="/shop?section=new">وصل حديثاً</a>
+      <a href="/bala">قطع البالة</a>
+      <a href="/shop?sort=price_asc">الأقل سعراً</a>
+    </div>
+  </form>
+</div>

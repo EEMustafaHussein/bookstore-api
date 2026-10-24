@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, csrf with context %}
+{% block title %}سلة التسوق — {{ site.site_name }}{% endblock %}
+
+{% block content %}
+<section class="container section section-tight cart-page">
+  <header class="page-head reveal">
+    <nav class="breadcrumbs" aria-label="مسار الصفحة"><a href="/">الرئيسية</a><span>/</span><span>السلة</span></nav>
+    <h1 class="page-title">سلة <em>التسوق</em></h1>
+    {% if not cart.is_empty %}<p class="page-sub">{{ cart.count }} قطعة في سلتكِ</p>{% endif %}
+  </header>
+
+  {% for notice in cart.notices %}<div class="notice notice-warn">{{ icon('alert') }} {{ notice }}</div>{% endfor %}
+
+  {% if cart.is_empty %}
+  <div class="empty-state reveal">
+    <div class="empty-orb">{{ icon('bag') }}</div>
+    <h3>سلتكِ فارغة</h3>
+    <p>لم تضيفي أي قطعة بعد، اكتشفي أحدث التشكيلات وقطع البالة الفريدة.</p>
+    <div class="empty-actions">
+      <a href="/shop?section=new" class="btn btn-primary">تسوّقي الجديد</a>
+      <a href="/bala" class="btn btn-outline">ركن البالة</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="cart-layout">
+    <ul class="cart-lines">
+      {% for line in cart.lines %}
+      {% set p = line.product %}
+      <li class="cart-line reveal" style="--i: {{ loop.index0 % 4 }}">
+        <a href="/product/{{ p.id }}" class="cart-thumb"><img src="{{ p.cover|media }}" alt="{{ p.name }}" loading="lazy"></a>
+        <div class="cart-line-info">
+          <a href="/product/{{ p.id }}" class="cart-line-name">{{ p.name }}</a>
+          <p class="cart-line-meta">
+            {% if p.section == Section.bala %}<span class="badge badge-bala">بالة</span>{% endif %}
+            {% if line.item.size %}<span>المقاس: {{ line.item.size }}</span>{% endif %}
+            {% if line.item.color %}<span>اللون: {{ line.item.color }}</span>{% endif %}
+          </p>
+          <p class="cart-line-price">{{ p.price|money }}</p>
+        </div>
+        <form method="post" action="/cart/items/{{ line.item.id }}" class="stepper stepper-sm">
+          {{ csrf() }}
+          <button type="submit" name="quantity" value="{{ line.item.quantity + 1 }}" aria-label="زيادة" {% if line.item.quantity >= p.stock %}disabled{% endif %}>{{ icon('plus') }}</button>
+          <span class="stepper-value">{{ line.item.quantity }}</span>
+          <button type="submit" name="quantity" value="{{ line.item.quantity - 1 }}" aria-label="إنقاص">{{ icon('minus') }}</button>
+        </form>
+        <strong class="cart-line-total">{{ line.line_total|money }}</strong>
+        <form method="post" action="/cart/items/{{ line.item.id }}/remove" class="cart-remove">
+          {{ csrf() }}
+          <button type="submit" class="icon-btn" aria-label="إزالة {{ p.name }}">{{ icon('trash') }}</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <aside class="summary-card reveal">
+      <h2>ملخص الطلب</h2>
+      {% if cart.free_shipping_over %}
+      <div class="ship-progress">
+        {% if cart.remaining_for_free_shipping %}
+        <p>أضيفي {{ cart.remaining_for_free_shipping|money }} لتحصلي على <strong>توصيل مجاني</strong> ✨</p>
+        {% else %}
+        <p>مبروك! حصلتِ على <strong>توصيل مجاني</strong> 🎉</p>
+        {% endif %}
+        <div class="progress"><span style="width: {{ [((cart.subtotal * 100) // cart.free_shipping_over), 100]|min }}%"></span></div>
+      </div>
+      {% endif %}
+      <div class="summary-row"><span>المجموع</span><span>{{ cart.subtotal|money }}</span></div>
+      <div class="summary-row"><span>التوصيل</span><span>{{ cart.shipping|money if cart.shipping else 'مجاني' }}</span></div>
+      <div class="summary-row summary-total"><span>الإجمالي</span><strong>{{ cart.total|money }}</strong></div>
+      <a href="/checkout" class="btn btn-primary btn-lg btn-block btn-shine">إتمام الطلب {{ icon('arrow-left') }}</a>
+      <a href="/shop" class="btn btn-link btn-block">متابعة التسوق</a>
+      <div class="pay-badges pay-badges-dark">
+        <span class="pay-badge">{{ icon('cash') }}<small>عند الاستلام</small></span>
+        {% if settings.card_payments_enabled %}
+        <span class="pay-badge pay-card">{% include "partials/mastercard.svg" %}</span>
+        <span class="pay-badge pay-card">{% include "partials/visa.svg" %}</span>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

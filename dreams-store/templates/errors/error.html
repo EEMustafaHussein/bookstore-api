@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon with context %}
+{% block title %}{{ title }} — {{ site.site_name }}{% endblock %}
+{% block body_class %}page-error{% endblock %}
+
+{% block content %}
+<section class="error-page">
+  <div class="aurora aurora-soft" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="container error-inner">
+    <p class="error-code" aria-hidden="true">{{ code }}</p>
+    <h1>{{ title }}</h1>
+    <p>{{ message }}</p>
+    <div class="empty-actions">
+      <a href="/" class="btn btn-primary">{{ icon('home') }} الصفحة الرئيسية</a>
+      <a href="/shop" class="btn btn-outline">تصفّحي المتجر</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

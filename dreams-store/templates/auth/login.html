@@ -1,0 +1,26 @@
+{% extends "auth/_layout.html" %}
+{% from "partials/macros.html" import icon, csrf, field with context %}
+{% block title %}تسجيل الدخول — {{ site.site_name }}{% endblock %}
+
+{% block form %}
+<h1>أهلاً بعودتكِ <span class="wave">✨</span></h1>
+<p class="auth-sub">سجّلي الدخول لمتابعة طلباتكِ وإتمام الشراء.</p>
+
+{% if error %}<div class="notice notice-error" role="alert">{{ icon('alert') }} {{ error }}</div>{% endif %}
+
+<form method="post" action="/login" class="auth-form">
+  {{ csrf() }}
+  <input type="hidden" name="next" value="{{ next or '' }}">
+  {{ field('email', 'البريد الإلكتروني', values.email, {}, type='email', required=true, autocomplete='email', attrs='dir="ltr" maxlength="254" autofocus') }}
+  <div class="field">
+    <label for="f-password">كلمة المرور <span class="req">*</span></label>
+    <div class="password-wrap">
+      <input id="f-password" name="password" type="password" required autocomplete="current-password" maxlength="128" dir="ltr">
+      <button type="button" class="icon-btn" data-toggle-password aria-label="إظهار كلمة المرور">{{ icon('eye') }}</button>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary btn-lg btn-block btn-shine" data-submit-once>تسجيل الدخول {{ icon('arrow-left') }}</button>
+</form>
+
+<p class="auth-switch">ليس لديكِ حساب؟ <a href="/register{% if next %}?next={{ next|urlencode }}{% endif %}">أنشئي حساباً الآن</a></p>
+{% endblock %}

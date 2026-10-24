@@ -1,0 +1,71 @@
+{% extends "admin/base.html" %}
+{% from "partials/macros.html" import icon, csrf, pagination with context %}
+{% block title %}المنتجات{% endblock %}
+{% block heading %}المنتجات{% endblock %}
+{% block subheading %}<p>{{ total }} منتج</p>{% endblock %}
+{% block actions %}<a href="/admin/products/new" class="btn btn-primary btn-sm">{{ icon('plus') }} منتج جديد</a>{% endblock %}
+
+{% block content %}
+<form method="get" action="/admin/products" class="filter-bar" data-autosubmit>
+  <div class="search-field">{{ icon('search') }}<input type="search" name="q" value="{{ filters.get('q', '') }}" placeholder="ابحث باسم المنتج…" maxlength="80"></div>
+  <div class="select-wrap">
+    <select name="section" aria-label="القسم الرئيسي">
+      <option value="">كل الأنواع</option>
+      {% for s in Section %}<option value="{{ s.value }}" {% if filters.get('section') == s.value %}selected{% endif %}>{{ SECTION_LABELS[s] }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="select-wrap">
+    <select name="category" aria-label="القسم">
+      <option value="">كل الأقسام</option>
+      {% for c in categories %}<option value="{{ c.id }}" {% if filters.get('category') == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="select-wrap">
+    <select name="status" aria-label="الحالة">
+      <option value="">كل الحالات</option>
+      <option value="hidden" {% if filters.get('status') == 'hidden' %}selected{% endif %}>مخفي</option>
+      <option value="out" {% if filters.get('status') == 'out' %}selected{% endif %}>نفدت الكمية</option>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-outline btn-sm">تصفية</button>
+</form>
+
+{% if products %}
+<div class="admin-products">
+  {% for p in products %}
+  <article class="admin-product {{ 'is-hidden' if not p.is_published }}">
+    <a href="/admin/products/{{ p.id }}" class="admin-product-media">
+      <img src="{{ p.cover|media }}" alt="" loading="lazy">
+      {% if p.section == Section.bala %}<span class="badge badge-bala">بالة</span>{% endif %}
+      {% if not p.is_published %}<span class="badge badge-out">مخفي</span>{% endif %}
+    </a>
+    <div class="admin-product-info">
+      <a href="/admin/products/{{ p.id }}" class="admin-product-name">{{ p.name }}</a>
+      <p class="muted">{{ p.category.name if p.category else 'بدون قسم' }} · {{ p.images|length }} صور</p>
+      <p class="admin-product-price"><strong>{{ p.price|money }}</strong>{% if p.old_price %} <del>{{ p.old_price|money }}</del>{% endif %}</p>
+      <p class="stock {{ 'is-out' if p.stock <= 0 }}">{{ 'نفدت الكمية' if p.stock <= 0 else 'الكمية: ' ~ p.stock }}</p>
+    </div>
+    <div class="admin-product-actions">
+      <a href="/admin/products/{{ p.id }}" class="icon-btn" title="تعديل" aria-label="تعديل">{{ icon('edit') }}</a>
+      <a href="/product/{{ p.id }}" class="icon-btn" title="عرض في المتجر" aria-label="عرض في المتجر" target="_blank" rel="noopener">{{ icon('eye') }}</a>
+      <form method="post" action="/admin/products/{{ p.id }}/toggle">
+        {{ csrf() }}<input type="hidden" name="next" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+        <button type="submit" class="icon-btn" title="{{ 'إخفاء' if p.is_published else 'إظهار' }}" aria-label="{{ 'إخفاء' if p.is_published else 'إظهار' }}">{{ icon('eye-off' if p.is_published else 'eye') }}</button>
+      </form>
+      <form method="post" action="/admin/products/{{ p.id }}/delete" data-confirm="حذف «{{ p.name }}» نهائياً؟ لا يمكن التراجع.">
+        {{ csrf() }}<button type="submit" class="icon-btn icon-danger" title="حذف" aria-label="حذف">{{ icon('trash') }}</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{{ pagination(page, pages, '/admin/products', filters) }}
+{% else %}
+<div class="panel panel-empty-big">
+  <div class="empty-orb">{{ icon('dress') }}</div>
+  <h2>{% if filters %}لا توجد نتائج{% else %}لا توجد منتجات بعد{% endif %}</h2>
+  <p>{% if filters %}جرّب تصفية مختلفة.{% else %}انشر أول قطعة في المتجر: صور، سعر، ووصف جميل.{% endif %}</p>
+  <a href="/admin/products/new" class="btn btn-primary">{{ icon('plus') }} نشر منتج جديد</a>
+</div>
+{% endif %}
+{% endblock %}

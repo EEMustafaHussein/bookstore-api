@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, csrf, field with context %}
+{% block title %}إتمام الطلب — {{ site.site_name }}{% endblock %}
+
+{% block content %}
+<section class="container section section-tight checkout-page">
+  <header class="page-head reveal">
+    <ol class="steps" aria-label="مراحل الطلب">
+      <li class="is-done"><span>1</span>السلة</li>
+      <li class="is-current"><span>2</span>معلومات التوصيل والدفع</li>
+      <li><span>3</span>تأكيد الطلب</li>
+    </ol>
+    <h1 class="page-title">إتمام <em>الطلب</em></h1>
+  </header>
+
+  {% if errors.cart %}<div class="notice notice-warn">{{ icon('alert') }} {{ errors.cart }}</div>{% endif %}
+
+  <form method="post" action="/checkout" class="checkout-layout" data-checkout>
+    {{ csrf() }}
+    <div class="checkout-main">
+      <fieldset class="form-card reveal">
+        <legend>{{ icon('truck') }} معلومات التوصيل</legend>
+        <div class="form-grid">
+          {{ field('full_name', 'الاسم الكامل', values.full_name, errors, required=true, autocomplete='name', attrs='maxlength="80"') }}
+          {{ field('phone', 'رقم الهاتف', values.phone, errors, type='tel', required=true, autocomplete='tel', attrs='inputmode="tel" dir="ltr" placeholder="07XX XXX XXXX" maxlength="20"') }}
+          <div class="field {{ 'has-error' if errors.governorate }}">
+            <label for="f-governorate">المحافظة <span class="req">*</span></label>
+            <div class="select-wrap select-wrap-block">
+              <select id="f-governorate" name="governorate" required>
+                {% for g in GOVERNORATES %}<option value="{{ g }}" {% if g == values.governorate %}selected{% endif %}>{{ g }}</option>{% endfor %}
+              </select>
+            </div>
+            {% if errors.governorate %}<p class="field-error">{{ errors.governorate }}</p>{% endif %}
+          </div>
+          {{ field('city', 'المدينة / المنطقة', values.city, errors, required=true, autocomplete='address-level2', attrs='maxlength="80"') }}
+          <div class="field field-wide {{ 'has-error' if errors.address }}">
+            <label for="f-address">العنوان بالتفصيل <span class="req">*</span></label>
+            <textarea id="f-address" name="address" rows="2" required maxlength="300" placeholder="الحي، الزقاق، رقم الدار، أقرب نقطة دالة" autocomplete="street-address">{{ values.address }}</textarea>
+            {% if errors.address %}<p class="field-error">{{ errors.address }}</p>{% endif %}
+          </div>
+          <div class="field field-wide">
+            <label for="f-notes">ملاحظات (اختياري)</label>
+            <textarea id="f-notes" name="notes" rows="2" maxlength="500" placeholder="وقت مناسب للتوصيل، أي ملاحظة على الطلب…">{{ values.notes }}</textarea>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-card reveal">
+        <legend>{{ icon('card') }} طريقة الدفع</legend>
+        {% if errors.payment_method %}<p class="field-error">{{ errors.payment_method }}</p>{% endif %}
+        <div class="pay-options">
+          <label class="pay-option">
+            <input type="radio" name="payment_method" value="cod" {% if values.payment_method != 'card' or PaymentMethod.card not in payment_methods %}checked{% endif %}>
+            <span class="pay-option-body">
+              <span class="pay-option-icon">{{ icon('cash') }}</span>
+              <span><strong>الدفع عند الاستلام</strong><small>ادفعي نقداً لمندوب التوصيل عند وصول طلبكِ</small></span>
+              <span class="pay-check">{{ icon('check') }}</span>
+            </span>
+          </label>
+          {% if PaymentMethod.card in payment_methods %}
+          <label class="pay-option">
+            <input type="radio" name="payment_method" value="card" {% if values.payment_method == 'card' %}checked{% endif %}>
+            <span class="pay-option-body">
+              <span class="pay-option-icon">{{ icon('card') }}</span>
+              <span><strong>بطاقة بنكية</strong><small>ماستر كارد، فيزا، Apple Pay و Google Pay — عبر صفحة دفع آمنة ومشفّرة</small></span>
+              <span class="pay-brands">{% include "partials/mastercard.svg" %}{% include "partials/visa.svg" %}</span>
+              <span class="pay-check">{{ icon('check') }}</span>
+            </span>
+          </label>
+          {% endif %}
+        </div>
+        <p class="secure-note">{{ icon('lock') }} لا نحفظ بيانات بطاقتكِ أبداً — الدفع يتم عبر بوابة دفع عالمية مشفّرة.</p>
+      </fieldset>
+    </div>
+
+    <aside class="summary-card checkout-summary reveal">
+      <h2>طلبكِ ({{ cart.count }})</h2>
+      <ul class="mini-lines">
+        {% for line in cart.lines %}
+        <li>
+          <span class="mini-thumb"><img src="{{ line.product.cover|media }}" alt="" loading="lazy"><b>{{ line.item.quantity }}</b></span>
+          <span class="mini-info"><strong>{{ line.product.name }}</strong><small>{% if line.item.size %}{{ line.item.size }}{% endif %}{% if line.item.size and line.item.color %} · {% endif %}{% if line.item.color %}{{ line.item.color }}{% endif %}</small></span>
+          <span class="mini-price">{{ line.line_total|money }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <div class="summary-row"><span>المجموع</span><span>{{ cart.subtotal|money }}</span></div>
+      <div class="summary-row"><span>التوصيل</span><span>{{ cart.shipping|money if cart.shipping else 'مجاني' }}</span></div>
+      <div class="summary-row summary-total"><span>الإجمالي</span><strong>{{ cart.total|money }}</strong></div>
+      <button type="submit" class="btn btn-primary btn-lg btn-block btn-shine" data-submit-once>{{ icon('check') }} تأكيد الطلب</button>
+      <a href="/cart" class="btn btn-link btn-block">العودة إلى السلة</a>
+    </aside>
+  </form>
+</section>
+{% endblock %}

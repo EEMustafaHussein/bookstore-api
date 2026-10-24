@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon with context %}
+{% block body_class %}page-auth{% endblock %}
+{% block announcement %}{% endblock %}
+
+{% block content %}
+<section class="auth">
+  <div class="auth-visual" aria-hidden="true">
+    <div class="aurora"><span></span><span></span><span></span><span></span></div>
+    <canvas class="stars" data-stars></canvas>
+    <div class="auth-quote">
+      <span class="logo-mark">{{ icon('logo-moon') }}</span>
+      <p class="auth-brand">{{ site.site_name }}</p>
+      <p>{% block quote %}كل قطعة تحكي حلماً… والحلم يبدأ من هنا.{% endblock %}</p>
+    </div>
+    <div class="auth-arches"><span></span><span></span><span></span></div>
+  </div>
+  <div class="auth-panel">
+    <div class="auth-card reveal">
+      {% block form %}{% endblock %}
+    </div>
+  </div>
+</section>
+{% endblock %}

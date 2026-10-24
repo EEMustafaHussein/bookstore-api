@@ -1,0 +1,16 @@
+services:
+  shop:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      PAYMENT_DEMO_MODE: "false"
+    volumes:
+      - shop-data:/app/data
+      - shop-media:/app/media
+    restart: unless-stopped
+
+volumes:
+  shop-data:
+  shop-media:

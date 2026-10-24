@@ -1,0 +1,50 @@
+{% extends "admin/base.html" %}
+{% from "partials/macros.html" import icon, pagination, status_pill with context %}
+{% block title %}الطلبات{% endblock %}
+{% block heading %}الطلبات{% endblock %}
+{% block subheading %}<p>{{ total }} طلب</p>{% endblock %}
+
+{% block content %}
+<div class="status-tabs" role="list">
+  <a role="listitem" href="/admin/orders" class="{{ 'is-active' if not filters.get('status') }}">الكل</a>
+  {% for status in OrderStatus %}
+  <a role="listitem" href="/admin/orders?status={{ status.value }}" class="{{ 'is-active' if filters.get('status') == status.value }}">{{ ORDER_STATUS_LABELS[status] }} <b>{{ counts.get(status, 0) }}</b></a>
+  {% endfor %}
+</div>
+
+<form method="get" action="/admin/orders" class="filter-bar">
+  {% if filters.get('status') %}<input type="hidden" name="status" value="{{ filters.status }}">{% endif %}
+  <div class="search-field">{{ icon('search') }}<input type="search" name="q" value="{{ filters.get('q', '') }}" placeholder="رقم الطلب، اسم الزبونة أو رقم الهاتف" maxlength="40"></div>
+  <button type="submit" class="btn btn-outline btn-sm">بحث</button>
+</form>
+
+{% if orders %}
+<div class="panel panel-flush">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>الطلب</th><th>الزبونة</th><th>المحافظة</th><th>القطع</th><th>الدفع</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td data-label="الطلب"><a href="/admin/orders/{{ order.id }}"><strong>#{{ order.id }}</strong></a><small class="muted block">{{ order.created_at|local_dt }}</small></td>
+          <td data-label="الزبونة">{{ order.full_name }}<small class="muted block" dir="ltr">{{ order.phone }}</small></td>
+          <td data-label="المحافظة">{{ order.governorate }}</td>
+          <td data-label="القطع">{{ order.item_count }}</td>
+          <td data-label="الدفع">{{ 'بطاقة' if order.payment_method == PaymentMethod.card else 'عند الاستلام' }}<small class="block {{ 'text-success' if order.payment_status == PaymentStatus.paid else 'muted' }}">{{ PAYMENT_STATUS_LABELS[order.payment_status] }}</small></td>
+          <td data-label="المبلغ"><strong>{{ order.total|money }}</strong></td>
+          <td data-label="الحالة">{{ status_pill(order) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{ pagination(page, pages, '/admin/orders', filters) }}
+{% else %}
+<div class="panel panel-empty-big">
+  <div class="empty-orb">{{ icon('receipt') }}</div>
+  <h2>لا توجد طلبات هنا</h2>
+  <p>ستظهر الطلبات الجديدة هنا فور وصولها.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,59 @@
+{% from "partials/macros.html" import icon, csrf, social_links with context %}<!doctype html>
+<html lang="ar" dir="rtl" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ site.site_name }} — {{ site.tagline }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}{{ site.hero_subtitle }}{% endblock %}">
+  <meta name="theme-color" content="#1d0f24">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta property="og:site_name" content="{{ site.site_name }}">
+  <meta property="og:title" content="{{ self.title() }}">
+  <meta property="og:description" content="{{ self.description() }}">
+  {% block og_image %}{% endblock %}
+  <link rel="icon" href="{{ asset('img/favicon.svg') }}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=El+Messiri:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <a class="skip-link" href="#main">تخطي إلى المحتوى</a>
+  {% if settings.payment_demo_mode and not settings.stripe_enabled %}
+  <div class="demo-banner" role="note">{{ icon('info') }} وضع الدفع التجريبي مفعّل — لا تُسحب أي أموال حقيقية</div>
+  {% endif %}
+
+  {% block announcement %}
+  {% if site.announcement %}
+  <div class="announcement" aria-label="إعلان">
+    <div class="announcement-track">
+      {% for _ in range(4) %}<span>{{ site.announcement }}</span><span aria-hidden="true">✦</span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endblock %}
+
+  {% include "partials/header.html" %}
+
+  <main id="main" class="site-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "partials/footer.html" %}
+  {% include "partials/overlays.html" %}
+
+  <div class="toasts" data-toasts aria-live="polite">
+    {% for item in flashes %}
+    <div class="toast toast-{{ item.category }}" data-toast>
+      {{ icon('check' if item.category == 'success' else ('alert' if item.category == 'error' else 'info')) }}
+      <p>{{ item.message }}</p>
+      <button type="button" class="toast-close" data-toast-close aria-label="إغلاق">{{ icon('close') }}</button>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script src="{{ asset('js/app.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

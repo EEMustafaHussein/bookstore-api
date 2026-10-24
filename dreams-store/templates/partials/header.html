@@ -1,0 +1,56 @@
+{% from "partials/macros.html" import icon, social_links with context %}
+{% set path = request.url.path %}
+<header class="site-header" data-header>
+  <div class="container header-inner">
+    <button type="button" class="icon-btn menu-toggle" data-menu-open aria-label="فتح القائمة" aria-expanded="false" aria-controls="mobile-menu">
+      <span class="burger" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
+
+    <a href="/" class="logo" aria-label="{{ site.site_name }} — الصفحة الرئيسية">
+      <span class="logo-mark" aria-hidden="true">{{ icon('logo-moon') }}</span>
+      <span class="logo-text">{{ site.site_name }}</span>
+    </a>
+
+    <nav class="main-nav" aria-label="القائمة الرئيسية">
+      <a href="/" class="{{ 'is-active' if path == '/' }}">الرئيسية</a>
+      <a href="/shop?section=new" class="{{ 'is-active' if path == '/shop' and request.query_params.get('section') == 'new' }}">الجديد</a>
+      <a href="/bala" class="nav-bala {{ 'is-active' if path == '/bala' }}">البالة <span class="nav-chip">فريدة</span></a>
+      <a href="/shop" class="{{ 'is-active' if path == '/shop' and request.query_params.get('section') != 'new' }}">كل الأقسام</a>
+      <a href="/about" class="{{ 'is-active' if path == '/about' }}">من أنا</a>
+    </nav>
+
+    <div class="header-actions">
+      <button type="button" class="icon-btn" data-search-open aria-label="بحث">{{ icon('search') }}</button>
+      {% if current_user and current_user.is_staff %}
+      <a class="icon-btn hide-sm" href="/admin" aria-label="لوحة التحكم" title="لوحة التحكم">{{ icon('dashboard') }}</a>
+      {% endif %}
+      <a class="icon-btn hide-sm" href="{{ '/account' if current_user else '/login' }}" aria-label="{{ 'حسابي' if current_user else 'تسجيل الدخول' }}" title="{{ 'حسابي' if current_user else 'تسجيل الدخول' }}">{{ icon('user') }}</a>
+      <a class="icon-btn cart-btn" href="/cart" data-cart-open aria-label="السلة">
+        {{ icon('bag') }}
+        <span class="cart-count" data-cart-count {% if not cart_count %}hidden{% endif %}>{{ cart_count }}</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-menu" id="mobile-menu" data-menu aria-hidden="true">
+  <div class="mobile-menu-bg" aria-hidden="true"><span></span><span></span></div>
+  <div class="mobile-menu-inner">
+    <button type="button" class="icon-btn mobile-close" data-menu-close aria-label="إغلاق القائمة">{{ icon('close') }}</button>
+    <nav class="mobile-links" aria-label="قائمة الجوال">
+      <a href="/" style="--i:0">الرئيسية</a>
+      <a href="/shop?section=new" style="--i:1">الجديد</a>
+      <a href="/bala" style="--i:2">البالة <span class="nav-chip">فريدة</span></a>
+      <a href="/shop" style="--i:3">كل الأقسام</a>
+      <a href="/about" style="--i:4">من أنا</a>
+      {% if current_user %}
+      <a href="/account" style="--i:5">حسابي</a>
+      {% if current_user.is_staff %}<a href="/admin" style="--i:6">لوحة التحكم</a>{% endif %}
+      {% else %}
+      <a href="/login" style="--i:5">تسجيل الدخول</a>
+      <a href="/register" style="--i:6">إنشاء حساب</a>
+      {% endif %}
+    </nav>
+    {{ social_links(site, "social-light") }}
+  </div>
+</div>

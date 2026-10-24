@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, csrf with context %}
+{% block title %}الدفع بالبطاقة (تجريبي) — {{ site.site_name }}{% endblock %}
+{% block announcement %}{% endblock %}
+
+{% block content %}
+<section class="container section demo-pay">
+  <div class="pay-card-box reveal">
+    <div class="pay-card-head">
+      <span class="lock-orb">{{ icon('lock') }}</span>
+      <div>
+        <h1>صفحة دفع تجريبية</h1>
+        <p>طلب رقم #{{ order.id }} — {{ order.total|money }}</p>
+      </div>
+    </div>
+
+    <div class="credit-card" aria-hidden="true">
+      <span class="chip"></span>
+      <span class="cc-number" dir="ltr">5555 •••• •••• 4444</span>
+      <span class="cc-name">{{ site.site_name }}</span>
+      <span class="cc-brand">{% include "partials/mastercard.svg" %}</span>
+    </div>
+
+    <p class="notice notice-info">{{ icon('info') }} هذه صفحة تجريبية لتجربة المتجر فقط. لا تُدخل أي بيانات بطاقة ولا تُسحب أي أموال. عند تفعيل Stripe تنتقل الزبونة إلى صفحة الدفع الحقيقية بدلاً منها.</p>
+
+    <form method="post" action="/checkout/demo/{{ order.id }}" class="pay-actions">
+      {{ csrf() }}
+      <button type="submit" name="action" value="pay" class="btn btn-primary btn-lg btn-block btn-shine">{{ icon('check') }} إتمام الدفع التجريبي</button>
+      <button type="submit" name="action" value="cancel" class="btn btn-link btn-block">إلغاء والعودة للطلب</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

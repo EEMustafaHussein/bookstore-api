@@ -1,0 +1,92 @@
+{% extends "admin/base.html" %}
+{% from "partials/macros.html" import icon, status_pill with context %}
+{% block title %}الرئيسية{% endblock %}
+{% block heading %}أهلاً {{ current_user.name }} 👋{% endblock %}
+{% block subheading %}<p>نظرة سريعة على المتجر اليوم.</p>{% endblock %}
+{% block actions %}<a href="/admin/products/new" class="btn btn-primary btn-sm">{{ icon('plus') }} منتج جديد</a>{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  <a href="/admin/orders?status=new" class="stat stat-hot">
+    <span class="stat-icon">{{ icon('receipt') }}</span>
+    <span class="stat-label">طلبات جديدة</span>
+    <strong class="stat-value" data-count="{{ stats.new_orders }}">{{ stats.new_orders }}</strong>
+  </a>
+  <div class="stat">
+    <span class="stat-icon">{{ icon('cash') }}</span>
+    <span class="stat-label">إجمالي المبيعات</span>
+    <strong class="stat-value">{{ stats.revenue|money }}</strong>
+    <small>{{ stats.orders }} طلب فعّال</small>
+  </div>
+  <a href="/admin/products" class="stat">
+    <span class="stat-icon">{{ icon('dress') }}</span>
+    <span class="stat-label">المنتجات</span>
+    <strong class="stat-value" data-count="{{ stats.products }}">{{ stats.products }}</strong>
+    <small>{{ stats.published }} ظاهر · {{ stats.bala }} بالة</small>
+  </a>
+  <div class="stat">
+    <span class="stat-icon">{{ icon('users') }}</span>
+    <span class="stat-label">الزبائن</span>
+    <strong class="stat-value" data-count="{{ stats.customers }}">{{ stats.customers }}</strong>
+  </div>
+</div>
+
+<div class="admin-cols">
+  <section class="panel">
+    <header class="panel-head">
+      <h2>{{ icon('receipt') }} آخر الطلبات</h2>
+      <a href="/admin/orders" class="link-arrow">كل الطلبات {{ icon('arrow-left') }}</a>
+    </header>
+    {% if recent_orders %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>الطلب</th><th>الزبونة</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+        <tbody>
+          {% for order in recent_orders %}
+          <tr>
+            <td data-label="الطلب"><a href="/admin/orders/{{ order.id }}"><strong>#{{ order.id }}</strong></a><small class="muted block">{{ order.created_at|local_dt }}</small></td>
+            <td data-label="الزبونة">{{ order.full_name }}<small class="muted block" dir="ltr">{{ order.phone }}</small></td>
+            <td data-label="المبلغ">{{ order.total|money }}</td>
+            <td data-label="الحالة">{{ status_pill(order) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="panel-empty">{{ icon('receipt') }} لا توجد طلبات بعد. شارك رابط المتجر على صفحات التواصل لتبدأ الطلبات!</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <header class="panel-head">
+      <h2>{{ icon('alert') }} كمية قليلة</h2>
+      <a href="/admin/products?status=out" class="link-arrow">النافدة {{ icon('arrow-left') }}</a>
+    </header>
+    {% if low_stock %}
+    <ul class="mini-products">
+      {% for p in low_stock %}
+      <li>
+        <img src="{{ p.cover|media }}" alt="" loading="lazy">
+        <a href="/admin/products/{{ p.id }}">{{ p.name }}</a>
+        <span class="pill {{ 'pill-cancelled' if p.stock <= 0 else 'pill-awaiting_payment' }}">{{ 'نفدت' if p.stock <= 0 else 'بقي ' ~ p.stock }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="panel-empty">{{ icon('check') }} كل المنتجات بكميات جيدة.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel quick-links">
+  <a href="/admin/products/new?section=new">{{ icon('dress') }}<span>نشر قطعة جديدة</span></a>
+  <a href="/admin/products/new?section=bala">{{ icon('hanger') }}<span>نشر قطعة بالة</span></a>
+  <a href="/admin/categories">{{ icon('tag') }}<span>إدارة الأقسام</span></a>
+  {% if current_user.is_owner %}
+  <a href="/admin/team">{{ icon('users') }}<span>إضافة مسؤول</span></a>
+  <a href="/admin/settings">{{ icon('share') }}<span>روابط التواصل</span></a>
+  <a href="/admin/about">{{ icon('idcard') }}<span>صفحة من أنا</span></a>
+  {% endif %}
+</section>
+{% endblock %}

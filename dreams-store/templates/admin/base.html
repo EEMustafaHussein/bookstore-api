@@ -1,0 +1,88 @@
+{% from "partials/macros.html" import icon, csrf with context %}<!doctype html>
+<html lang="ar" dir="rtl" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>{% block title %}لوحة التحكم{% endblock %} — {{ site.site_name }}</title>
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <link rel="icon" href="{{ asset('img/favicon.svg') }}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=El+Messiri:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+</head>
+<body class="admin">
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-sidebar>
+      <a href="/admin" class="logo logo-light">
+        <span class="logo-mark" aria-hidden="true">{{ icon('logo-moon') }}</span>
+        <span class="logo-text">{{ site.site_name }}</span>
+      </a>
+      <p class="admin-role">{{ icon('shield') }} {{ ROLE_LABELS[current_user.role] }}</p>
+
+      <nav class="admin-nav" aria-label="قائمة لوحة التحكم">
+        <p class="nav-group">المتجر</p>
+        <a href="/admin" class="{{ 'is-active' if active == 'dashboard' }}">{{ icon('dashboard') }} الرئيسية</a>
+        <a href="/admin/products" class="{{ 'is-active' if active == 'products' }}">{{ icon('dress') }} المنتجات</a>
+        <a href="/admin/products/new" class="nav-cta">{{ icon('plus') }} نشر منتج جديد</a>
+        <a href="/admin/categories" class="{{ 'is-active' if active == 'categories' }}">{{ icon('tag') }} الأقسام</a>
+        <a href="/admin/orders" class="{{ 'is-active' if active == 'orders' }}">{{ icon('receipt') }} الطلبات</a>
+        {% if current_user.is_owner %}
+        <p class="nav-group">صاحب المتجر</p>
+        <a href="/admin/team" class="{{ 'is-active' if active == 'team' }}">{{ icon('users') }} المسؤولون والحسابات</a>
+        <a href="/admin/settings" class="{{ 'is-active' if active == 'settings' }}">{{ icon('settings') }} إعدادات المتجر</a>
+        <a href="/admin/about" class="{{ 'is-active' if active == 'about' }}">{{ icon('idcard') }} صفحة «من أنا»</a>
+        {% endif %}
+      </nav>
+
+      <div class="admin-sidebar-foot">
+        <a href="/" target="_blank" rel="noopener">{{ icon('external') }} عرض المتجر</a>
+        <form method="post" action="/logout">{{ csrf() }}<button type="submit">{{ icon('logout') }} تسجيل الخروج</button></form>
+      </div>
+    </aside>
+    <div class="admin-backdrop" data-admin-backdrop></div>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <button type="button" class="icon-btn admin-menu-btn" data-admin-menu aria-label="القائمة">{{ icon('menu') }}</button>
+        <div class="admin-title">
+          <h1>{% block heading %}{% endblock %}</h1>
+          {% block subheading %}{% endblock %}
+        </div>
+        <div class="admin-top-actions">{% block actions %}{% endblock %}</div>
+        <span class="admin-user" title="{{ current_user.email }}">{{ current_user.name|initials }}</span>
+      </header>
+
+      <div class="admin-content">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+
+  <div class="toasts" data-toasts aria-live="polite">
+    {% for item in flashes %}
+    <div class="toast toast-{{ item.category }}" data-toast>
+      {{ icon('check' if item.category == 'success' else ('alert' if item.category == 'error' else 'info')) }}
+      <p>{{ item.message }}</p>
+      <button type="button" class="toast-close" data-toast-close aria-label="إغلاق">{{ icon('close') }}</button>
+    </div>
+    {% endfor %}
+  </div>
+
+  <dialog class="confirm-dialog" data-confirm-dialog>
+    <form method="dialog">
+      <div class="confirm-icon">{{ icon('alert') }}</div>
+      <p data-confirm-text>هل أنت متأكد؟</p>
+      <div class="confirm-actions">
+        <button value="cancel" class="btn btn-outline">تراجع</button>
+        <button value="ok" class="btn btn-danger-solid" data-confirm-ok>نعم، تأكيد</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="{{ asset('js/app.js') }}" defer></script>
+  <script src="{{ asset('js/admin.js') }}" defer></script>
+</body>
+</html>

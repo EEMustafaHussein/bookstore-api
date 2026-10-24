@@ -1,0 +1,130 @@
+{% extends "admin/base.html" %}
+{% from "partials/macros.html" import icon, csrf, field with context %}
+{% set editing = product is not none %}
+{% block title %}{{ 'تعديل: ' ~ product.name if editing else 'منتج جديد' }}{% endblock %}
+{% block heading %}{{ 'تعديل المنتج' if editing else 'نشر منتج جديد' }}{% endblock %}
+{% block subheading %}{% if editing %}<p>{{ product.name }}</p>{% else %}<p>أضف الصور والسعر والوصف ثم انشر.</p>{% endif %}{% endblock %}
+{% block actions %}
+{% if editing %}<a href="/product/{{ product.id }}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">{{ icon('eye') }} عرض في المتجر</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if errors %}<div class="notice notice-error">{{ icon('alert') }} راجع الحقول المظللة بالأحمر وأعد الحفظ.</div>{% endif %}
+
+<form method="post" action="{{ '/admin/products/' ~ product.id if editing else '/admin/products/new' }}" enctype="multipart/form-data" class="product-form" id="product-form" data-submit-once-form>
+  {{ csrf() }}
+  <div class="product-form-main">
+    <section class="panel">
+      <h2 class="panel-title">{{ icon('edit') }} تفاصيل المنتج</h2>
+      {{ field('name', 'اسم المنتج', values.name, errors, required=true, attrs='maxlength="120" placeholder="مثال: فستان سهرة ستان وردي"') }}
+      <div class="field {{ 'has-error' if errors.description }}">
+        <label for="f-description">الوصف (الكتابة على المنشور)</label>
+        <textarea id="f-description" name="description" rows="7" maxlength="4000" data-counter placeholder="اكتب تفاصيل القطعة: القماش، القصة، المناسبة، ملاحظات المقاس…">{{ values.description }}</textarea>
+        <p class="field-hint"><span data-counter-value>0</span> / 4000</p>
+      </div>
+      <div class="form-grid form-grid-3">
+        {{ field('price', 'السعر (' ~ site.currency_symbol ~ ')', values.price, errors, required=true, attrs='inputmode="numeric" dir="ltr" placeholder="25000" data-money') }}
+        {{ field('old_price', 'السعر قبل الخصم', values.old_price, errors, attrs='inputmode="numeric" dir="ltr" placeholder="اختياري" data-money', hint='يظهر مشطوباً مع نسبة الخصم') }}
+        {{ field('stock', 'الكمية المتوفرة', values.stock, errors, required=true, attrs='inputmode="numeric" dir="ltr"', hint='قطعة البالة غالباً 1') }}
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">{{ icon('tag') }} المقاسات والألوان</h2>
+      <div class="field">
+        <label for="f-sizes">المقاسات المتوفرة</label>
+        <input id="f-sizes" name="sizes" value="{{ values.sizes }}" maxlength="300" placeholder="S, M, L, XL" data-tags>
+        <div class="tag-suggest" data-tag-target="f-sizes">
+          {% for s in ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'فري سايز', '36', '38', '40', '42', '44'] %}<button type="button" data-tag="{{ s }}">{{ s }}</button>{% endfor %}
+        </div>
+        <p class="field-hint">افصل بفاصلة. اتركه فارغاً إذا لا يوجد مقاس (مثل الحقائب).</p>
+      </div>
+      <div class="field">
+        <label for="f-colors">الألوان المتوفرة</label>
+        <input id="f-colors" name="colors" value="{{ values.colors }}" maxlength="300" placeholder="أسود، أبيض، وردي" data-tags>
+        <div class="tag-suggest" data-tag-target="f-colors">
+          {% for c in ['أسود', 'أبيض', 'بيج', 'وردي', 'أحمر', 'أزرق', 'كحلي', 'أخضر', 'بني', 'رمادي', 'ذهبي'] %}<button type="button" data-tag="{{ c }}">{{ c }}</button>{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="images">
+      <h2 class="panel-title">{{ icon('image') }} الصور <small class="muted">(حتى {{ max_images }} صور — الأولى هي الصورة الرئيسية)</small></h2>
+      {% if editing and product.images %}
+      <ul class="image-manager">
+        {% for image in product.images %}
+        <li class="{{ 'is-cover' if loop.first }}">
+          <img src="{{ image.filename|media }}" alt="">
+          {% if loop.first %}<span class="cover-tag">{{ icon('star') }} الرئيسية</span>{% endif %}
+          <div class="image-actions">
+            {% if not loop.first %}<button type="submit" form="cover-{{ image.id }}" class="icon-btn" title="اجعلها الرئيسية" aria-label="اجعلها الرئيسية">{{ icon('star') }}</button>{% endif %}
+            <button type="submit" form="delete-image-{{ image.id }}" class="icon-btn icon-danger" title="حذف الصورة" aria-label="حذف الصورة">{{ icon('trash') }}</button>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <label class="dropzone {{ 'has-error' if errors.images }}" data-dropzone>
+        <input type="file" name="images" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple data-dropzone-input>
+        <span class="dropzone-icon">{{ icon('upload') }}</span>
+        <strong>اسحب الصور هنا أو اضغط للاختيار</strong>
+        <small>JPG أو PNG أو WEBP — حتى {{ settings.max_upload_mb }} ميغابايت للصورة. نضغطها تلقائياً لتفتح بسرعة.</small>
+      </label>
+      {% if errors.images %}<p class="field-error">{{ errors.images }}</p>{% endif %}
+      <ul class="upload-previews" data-dropzone-previews></ul>
+    </section>
+  </div>
+
+  <aside class="product-form-side">
+    <section class="panel sticky-panel">
+      <h2 class="panel-title">{{ icon('sparkle') }} النشر</h2>
+      <fieldset class="section-picker {{ 'has-error' if errors.section }}">
+        <legend>القسم الرئيسي</legend>
+        <label class="section-option">
+          <input type="radio" name="section" value="new" {% if values.section == 'new' %}checked{% endif %}>
+          <span>{{ icon('dress') }}<strong>جديد</strong><small>ملابس جديدة</small></span>
+        </label>
+        <label class="section-option section-option-bala">
+          <input type="radio" name="section" value="bala" {% if values.section == 'bala' %}checked{% endif %}>
+          <span>{{ icon('hanger') }}<strong>بالة</strong><small>قطع فريدة مستعملة</small></span>
+        </label>
+      </fieldset>
+
+      <div class="field {{ 'has-error' if errors.category_id }}">
+        <label for="f-category">القسم</label>
+        <div class="select-wrap select-wrap-block">
+          <select id="f-category" name="category_id">
+            <option value="">بدون قسم</option>
+            {% for c in categories %}<option value="{{ c.id }}" {% if values.category_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        {% if errors.category_id %}<p class="field-error">{{ errors.category_id }}</p>{% else %}<p class="field-hint"><a href="/admin/categories">+ إضافة قسم جديد</a></p>{% endif %}
+      </div>
+
+      <label class="switch">
+        <input type="checkbox" name="is_published" {% if values.is_published %}checked{% endif %}>
+        <span class="switch-track"></span>
+        <span><strong>ظاهر في المتجر</strong><small>أطفئه لحفظ المنتج كمسودة</small></span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" name="is_featured" {% if values.is_featured %}checked{% endif %}>
+        <span class="switch-track"></span>
+        <span><strong>منتج مميز</strong><small>يظهر أولاً وفي واجهة الصفحة الرئيسية</small></span>
+      </label>
+
+      <button type="submit" class="btn btn-primary btn-lg btn-block btn-shine" data-submit-label="جارٍ الرفع والحفظ…">{{ icon('check') }} {{ 'حفظ التعديلات' if editing else 'نشر المنتج' }}</button>
+      {% if editing %}
+      <button type="submit" form="delete-product" class="btn btn-link btn-danger btn-block">{{ icon('trash') }} حذف المنتج</button>
+      {% endif %}
+    </section>
+  </aside>
+</form>
+
+{% if editing %}
+{% for image in product.images %}
+<form id="cover-{{ image.id }}" method="post" action="/admin/products/{{ product.id }}/images/{{ image.id }}/cover" hidden>{{ csrf() }}</form>
+<form id="delete-image-{{ image.id }}" method="post" action="/admin/products/{{ product.id }}/images/{{ image.id }}/delete" data-confirm="حذف هذه الصورة؟" hidden>{{ csrf() }}</form>
+{% endfor %}
+<form id="delete-product" method="post" action="/admin/products/{{ product.id }}/delete" data-confirm="حذف «{{ product.name }}» نهائياً؟ لا يمكن التراجع." hidden>{{ csrf() }}</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon with context %}
+{% block title %}ركن البالة — {{ site.site_name }}{% endblock %}
+{% block description %}ملابس بالة نسائية مختارة بعناية، كل قطعة فريدة وبنسخة واحدة فقط.{% endblock %}
+{% block body_class %}page-bala{% endblock %}
+
+{% block content %}
+<section class="bala-hero">
+  <div class="paper-grain" aria-hidden="true"></div>
+  <div class="container bala-hero-inner">
+    <div class="bala-hero-copy">
+      <nav class="breadcrumbs" aria-label="مسار الصفحة"><a href="/">الرئيسية</a><span>/</span><span>البالة</span></nav>
+      <p class="eyebrow eyebrow-vintage">{{ icon('hanger') }} ركن البالة</p>
+      <h1 class="page-title vintage-title" data-split>{% if category %}بالة — {{ category.name }}{% else %}قطع لا تتكرر{% endif %}</h1>
+      <p class="page-sub">كل قطعة هنا موجودة بنسخة واحدة فقط، مختارة ومفحوصة ونظيفة. {{ total }} قطعة متوفرة الآن.</p>
+      <ul class="bala-notes">
+        <li>{{ icon('check') }} مفحوصة قطعةً قطعة</li>
+        <li>{{ icon('check') }} نظيفة وجاهزة للبس</li>
+        <li>{{ icon('check') }} أسعار تفرحكِ</li>
+      </ul>
+    </div>
+    <div class="stamp stamp-lg" aria-hidden="true">
+      <svg viewBox="0 0 120 120">
+        <defs><path id="stamp-path-hero" d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0"/></defs>
+        <text text-anchor="middle"><textPath href="#stamp-path-hero" startOffset="50%">بالة أصلية ✦ قطعة واحدة ✦ مختارة بعناية ✦ </textPath></text>
+      </svg>
+      <span>{{ icon('hanger') }}</span>
+    </div>
+  </div>
+</section>
+
+<section class="container section section-tight bala-listing">
+  {% set card_style = 'polaroid' %}
+  {% include "shop/_listing.html" %}
+</section>
+{% endblock %}

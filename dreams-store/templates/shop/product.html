@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, csrf, product_card with context %}
+{% set is_bala = product.section == Section.bala %}
+{% block title %}{{ product.name }} — {{ site.site_name }}{% endblock %}
+{% block description %}{{ (product.description or product.name)|truncate(150) }}{% endblock %}
+{% block og_image %}{% if product.cover %}<meta property="og:image" content="{{ settings.base_url.rstrip('/') }}{{ product.cover|media }}">{% endif %}{% endblock %}
+{% block body_class %}page-product {{ 'is-bala' if is_bala }}{% endblock %}
+
+{% block content %}
+<section class="container product-page">
+  <nav class="breadcrumbs" aria-label="مسار الصفحة">
+    <a href="/">الرئيسية</a><span>/</span>
+    <a href="{{ '/bala' if is_bala else '/shop?section=new' }}">{{ SECTION_LABELS[product.section] }}</a><span>/</span>
+    {% if product.category %}<a href="{{ '/bala' if is_bala else '/shop' }}?category={{ product.category.id }}">{{ product.category.name }}</a><span>/</span>{% endif %}
+    <span>{{ product.name }}</span>
+  </nav>
+
+  {% if not product.is_published %}
+  <div class="notice notice-warn">{{ icon('eye-off') }} هذا المنتج مخفي عن الزبائن، تشاهدينه لأنكِ من الإدارة.</div>
+  {% endif %}
+
+  <div class="product-layout">
+    <div class="gallery" data-gallery>
+      <div class="gallery-main">
+        <div class="gallery-track" data-gallery-track>
+          {% for image in product.images %}
+          <figure class="gallery-slide" data-zoom>
+            <img src="{{ image.filename|media }}" alt="{{ product.name }} — صورة {{ loop.index }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+          </figure>
+          {% else %}
+          <figure class="gallery-slide"><img src="{{ none|media }}" alt=""></figure>
+          {% endfor %}
+        </div>
+        <span class="badges badges-lg">
+          {% if is_bala %}<span class="badge badge-bala">بالة ✦ قطعة فريدة</span>{% endif %}
+          {% if product.discount_percent %}<span class="badge badge-sale">خصم {{ product.discount_percent }}%</span>{% endif %}
+        </span>
+        {% if product.images|length > 1 %}
+        <button type="button" class="gallery-nav prev" data-gallery-prev aria-label="الصورة السابقة">{{ icon('chevron-right') }}</button>
+        <button type="button" class="gallery-nav next" data-gallery-next aria-label="الصورة التالية">{{ icon('chevron-left') }}</button>
+        <div class="gallery-dots" aria-hidden="true">{% for image in product.images %}<span class="{{ 'is-active' if loop.first }}"></span>{% endfor %}</div>
+        {% endif %}
+      </div>
+      {% if product.images|length > 1 %}
+      <div class="gallery-thumbs">
+        {% for image in product.images %}
+        <button type="button" class="thumb {{ 'is-active' if loop.first }}" data-thumb="{{ loop.index0 }}" aria-label="عرض الصورة {{ loop.index }}">
+          <img src="{{ image.filename|media }}" alt="" loading="lazy">
+        </button>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="product-details">
+      {% if product.category %}<a class="product-cat" href="{{ '/bala' if is_bala else '/shop' }}?category={{ product.category.id }}">{{ product.category.name }}</a>{% endif %}
+      <h1 class="product-title">{{ product.name }}</h1>
+
+      <div class="product-price">
+        <strong>{{ product.price|money }}</strong>
+        {% if product.discount_percent %}<del>{{ product.old_price|money }}</del><span class="save">وفّري {{ (product.old_price - product.price)|money }}</span>{% endif %}
+      </div>
+
+      <p class="stock-line {{ 'is-out' if not product.in_stock }}">
+        {% if not product.in_stock %}{{ icon('close') }} نفدت الكمية
+        {% elif is_bala %}{{ icon('sparkle') }} قطعة واحدة فقط — لن تتكرر
+        {% elif product.stock <= 3 %}{{ icon('alert') }} بقي {{ product.stock }} فقط، اطلبيها قبل أن تنفد
+        {% else %}{{ icon('check') }} متوفرة وجاهزة للشحن{% endif %}
+      </p>
+
+      {% if product.in_stock %}
+      <form class="buy-form" method="post" action="/cart/add" data-add-to-cart novalidate>
+        {{ csrf() }}
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+
+        {% if product.size_list %}
+        <fieldset class="option-group" data-option="size">
+          <legend>المقاس <span class="option-hint" data-option-hint>اختاري المقاس</span></legend>
+          <div class="option-chips">
+            {% for size in product.size_list %}
+            <label class="option-chip"><input type="radio" name="size" value="{{ size }}" {% if product.size_list|length == 1 %}checked{% endif %} required><span>{{ size }}</span></label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        {% endif %}
+
+        {% if product.color_list %}
+        <fieldset class="option-group" data-option="color">
+          <legend>اللون <span class="option-hint" data-option-hint>اختاري اللون</span></legend>
+          <div class="option-chips">
+            {% for color in product.color_list %}
+            <label class="option-chip"><input type="radio" name="color" value="{{ color }}" {% if product.color_list|length == 1 %}checked{% endif %} required><span>{{ color }}</span></label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        {% endif %}
+
+        <div class="buy-row">
+          {% if product.stock > 1 %}
+          <div class="stepper" data-stepper>
+            <button type="button" data-step="1" aria-label="زيادة">{{ icon('plus') }}</button>
+            <input type="number" name="quantity" value="1" min="1" max="{{ [product.stock, 20]|min }}" inputmode="numeric" aria-label="الكمية">
+            <button type="button" data-step="-1" aria-label="إنقاص">{{ icon('minus') }}</button>
+          </div>
+          {% else %}
+          <input type="hidden" name="quantity" value="1">
+          {% endif %}
+          <button type="submit" class="btn btn-primary btn-lg btn-shine btn-grow" data-magnetic>{{ icon('bag-plus') }} أضيفي إلى السلة</button>
+        </div>
+      </form>
+      {% else %}
+      <a href="{{ '/bala' if is_bala else '/shop' }}" class="btn btn-outline btn-lg">تصفّحي قطعاً مشابهة</a>
+      {% endif %}
+
+      {% if product.description %}
+      <div class="product-desc">
+        <h2>عن هذه القطعة</h2>
+        <p>{{ product.description|nl2br }}</p>
+      </div>
+      {% endif %}
+
+      {% if is_bala %}
+      <div class="bala-note">
+        {{ icon('hanger') }}
+        <p><strong>قطعة بالة أصلية</strong> مختارة ومفحوصة بعناية. قد تحمل لمسة استعمال خفيفة تزيدها طابعاً خاصاً، وكل التفاصيل مذكورة في الوصف والصور.</p>
+      </div>
+      {% endif %}
+
+      <ul class="perks">
+        <li>{{ icon('truck') }}<span>توصيل لجميع محافظات العراق — {% if site.free_shipping_over %}مجاني للطلبات فوق {{ site.free_shipping_over|money }}{% else %}{{ site.shipping_fee|money }}{% endif %}</span></li>
+        <li>{{ icon('cash') }}<span>الدفع عند الاستلام{% if settings.card_payments_enabled %} أو بالبطاقة (ماستر كارد / فيزا){% endif %}</span></li>
+        <li>{{ icon('shield') }}<span>تسوّق آمن وبياناتكِ محمية</span></li>
+      </ul>
+
+      <div class="share">
+        <span>شاركي القطعة:</span>
+        <a class="icon-btn" href="https://wa.me/?text={{ (product.name ~ ' — ' ~ settings.base_url.rstrip('/') ~ '/product/' ~ product.id)|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="مشاركة عبر واتساب">{{ icon('whatsapp') }}</a>
+        <button type="button" class="icon-btn" data-copy-link aria-label="نسخ الرابط">{{ icon('link') }}</button>
+      </div>
+
+      {% if current_user and current_user.is_staff %}
+      <a href="/admin/products/{{ product.id }}" class="btn btn-link">{{ icon('edit') }} تعديل المنتج من لوحة التحكم</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% if related %}
+<section class="section container">
+  <header class="section-head reveal">
+    <p class="eyebrow">{{ icon('sparkle') }} قد يعجبكِ أيضاً</p>
+    <h2>قطع <em>مشابهة</em></h2>
+  </header>
+  <div class="product-grid">
+    {% for p in related %}{{ product_card(p, loop.index0, 'polaroid' if is_bala else '') }}{% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

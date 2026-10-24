@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, csrf, field, status_pill with context %}
+{% block title %}حسابي — {{ site.site_name }}{% endblock %}
+
+{% block content %}
+<section class="container section section-tight account-page">
+  <header class="account-head reveal">
+    <div class="avatar">{{ current_user.name|initials }}</div>
+    <div>
+      <p class="eyebrow">{{ icon('sparkle') }} حسابي</p>
+      <h1 class="page-title">أهلاً {{ current_user.name }}</h1>
+      <p class="page-sub" dir="ltr">{{ current_user.email }}</p>
+    </div>
+    <div class="account-head-actions">
+      {% if current_user.is_staff %}<a href="/admin" class="btn btn-outline">{{ icon('dashboard') }} لوحة التحكم</a>{% endif %}
+      <form method="post" action="/logout">{{ csrf() }}<button class="btn btn-link" type="submit">{{ icon('logout') }} تسجيل الخروج</button></form>
+    </div>
+  </header>
+
+  <div class="account-grid">
+    <div class="account-orders">
+      <h2 class="block-title">{{ icon('receipt') }} طلباتي</h2>
+      {% if orders %}
+      <ul class="order-cards">
+        {% for order in orders %}
+        <li class="reveal" style="--i: {{ loop.index0 % 4 }}">
+          <a href="/account/orders/{{ order.id }}" class="order-card">
+            <span class="order-thumbs">
+              {% for item in order.items[:3] %}<img src="{{ item.image|media }}" alt="" loading="lazy">{% endfor %}
+            </span>
+            <span class="order-card-info">
+              <strong>طلب رقم #{{ order.id }}</strong>
+              <small>{{ order.created_at|local_dt }} · {{ order.item_count }} قطعة</small>
+            </span>
+            <span class="order-card-side">
+              {{ status_pill(order) }}
+              <strong>{{ order.total|money }}</strong>
+            </span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state empty-state-sm">
+        <div class="empty-orb">{{ icon('receipt') }}</div>
+        <h3>لا توجد طلبات بعد</h3>
+        <p>عندما تطلبين، ستجدين طلباتكِ وحالتها هنا.</p>
+        <a href="/shop" class="btn btn-primary">ابدئي التسوق</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <aside class="account-side">
+      <form method="post" action="/account/profile" class="form-card" id="profile">
+        {{ csrf() }}
+        <h2 class="block-title">{{ icon('user') }} بياناتي</h2>
+        {{ field('name', 'الاسم', current_user.name, {}, required=true, attrs='maxlength="80"') }}
+        {{ field('phone', 'رقم الهاتف', current_user.phone, {}, type='tel', attrs='dir="ltr" inputmode="tel" placeholder="07XX XXX XXXX" maxlength="20"') }}
+        <button type="submit" class="btn btn-outline btn-block">حفظ</button>
+      </form>
+
+      <form method="post" action="/account/password" class="form-card" id="security">
+        {{ csrf() }}
+        <h2 class="block-title">{{ icon('lock') }} كلمة المرور</h2>
+        {{ field('current_password', 'كلمة المرور الحالية', '', {}, type='password', required=true, autocomplete='current-password', attrs='dir="ltr"') }}
+        {{ field('new_password', 'كلمة المرور الجديدة', '', {}, type='password', required=true, autocomplete='new-password', attrs='dir="ltr" minlength="8"') }}
+        {{ field('new_password_confirm', 'تأكيد كلمة المرور الجديدة', '', {}, type='password', required=true, autocomplete='new-password', attrs='dir="ltr"') }}
+        <button type="submit" class="btn btn-outline btn-block">تغيير كلمة المرور</button>
+      </form>
+    </aside>
+  </div>
+</section>
+{% endblock %}

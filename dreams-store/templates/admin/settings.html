@@ -1,0 +1,53 @@
+{% extends "admin/base.html" %}
+{% from "partials/macros.html" import icon, csrf with context %}
+{% block title %}إعدادات المتجر{% endblock %}
+{% block heading %}إعدادات المتجر{% endblock %}
+{% block subheading %}<p>الاسم، النصوص، أجور التوصيل وروابط مواقع التواصل.</p>{% endblock %}
+
+{% block content %}
+<form method="post" action="/admin/settings" class="settings-form">
+  {{ csrf() }}
+  <div class="admin-cols admin-cols-wide">
+    <div class="stack">
+      <section class="panel">
+        <h2 class="panel-title">{{ icon('sparkle') }} هوية المتجر</h2>
+        <div class="field"><label for="s-name">اسم المتجر <span class="req">*</span></label><input id="s-name" name="site_name" value="{{ site.site_name }}" required maxlength="60"></div>
+        <div class="field"><label for="s-tagline">الشعار (جملة قصيرة)</label><input id="s-tagline" name="tagline" value="{{ site.tagline }}" maxlength="120"></div>
+        <div class="field"><label for="s-announcement">شريط الإعلان أعلى الموقع</label><input id="s-announcement" name="announcement" value="{{ site.announcement }}" maxlength="200"><p class="field-hint">اتركه فارغاً لإخفاء الشريط.</p></div>
+        <div class="field"><label for="s-hero">العنوان الكبير في الواجهة</label><input id="s-hero" name="hero_title" value="{{ site.hero_title }}" maxlength="60"></div>
+        <div class="field"><label for="s-hero-sub">النص تحت العنوان</label><textarea id="s-hero-sub" name="hero_subtitle" rows="3" maxlength="250">{{ site.hero_subtitle }}</textarea></div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">{{ icon('truck') }} التوصيل والعملة</h2>
+        <div class="form-grid form-grid-3">
+          <div class="field"><label for="s-ship">أجور التوصيل</label><input id="s-ship" name="shipping_fee" value="{{ site.shipping_fee }}" inputmode="numeric" dir="ltr"></div>
+          <div class="field"><label for="s-free">توصيل مجاني للطلبات فوق</label><input id="s-free" name="free_shipping_over" value="{{ site.free_shipping_over }}" inputmode="numeric" dir="ltr"><p class="field-hint">0 = بدون توصيل مجاني</p></div>
+          <div class="field"><label for="s-currency">رمز العملة</label><input id="s-currency" name="currency_symbol" value="{{ site.currency_symbol }}" maxlength="10"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">{{ icon('phone') }} معلومات التواصل (تظهر أسفل الموقع)</h2>
+        <div class="form-grid">
+          <div class="field"><label for="s-phone">رقم الهاتف</label><input id="s-phone" name="contact_phone" value="{{ site.contact_phone }}" dir="ltr" maxlength="30"></div>
+          <div class="field"><label for="s-email">البريد الإلكتروني</label><input id="s-email" name="contact_email" type="email" value="{{ site.contact_email }}" dir="ltr" maxlength="254"></div>
+        </div>
+        <div class="field"><label for="s-address">العنوان</label><input id="s-address" name="address" value="{{ site.address }}" maxlength="150"></div>
+      </section>
+    </div>
+
+    <section class="panel sticky-panel">
+      <h2 class="panel-title">{{ icon('share') }} مواقع التواصل الاجتماعي</h2>
+      <p class="muted">الصق رابط صفحتك في كل منصة. الخانة الفارغة لا تظهر في الموقع.</p>
+      {% for key, label in SOCIAL_PLATFORMS %}
+      <div class="field social-field">
+        <label for="s-{{ key }}"><span class="social-dot social-{{ key }}">{{ icon(key) }}</span> {{ label }}</label>
+        <input id="s-{{ key }}" name="social_{{ key }}" value="{{ site.social.get(key, '') }}" dir="ltr" maxlength="300" placeholder="{{ 'رقم الهاتف أو رابط wa.me' if key == 'whatsapp' else 'https://' }}">
+      </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary btn-lg btn-block btn-shine">{{ icon('check') }} حفظ الإعدادات</button>
+    </section>
+  </div>
+</form>
+{% endblock %}

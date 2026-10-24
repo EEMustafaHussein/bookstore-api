@@ -1,0 +1,35 @@
+{% extends "auth/_layout.html" %}
+{% from "partials/macros.html" import icon, csrf, field with context %}
+{% block title %}إنشاء حساب — {{ site.site_name }}{% endblock %}
+{% block quote %}انضمّي إلينا واكتشفي أول القطع الجديدة وقطع البالة الفريدة.{% endblock %}
+
+{% block form %}
+{% set next = next or request.query_params.get('next', '') %}
+<h1>حساب جديد <span class="wave">🌸</span></h1>
+<p class="auth-sub">بريدكِ الإلكتروني وكلمة مرور — وتصبحين جاهزة للتسوق.</p>
+
+<form method="post" action="/register" class="auth-form">
+  {{ csrf() }}
+  <input type="hidden" name="next" value="{{ next if next.startswith('/') else '' }}">
+  {{ field('name', 'الاسم', values.name, errors, required=true, autocomplete='name', attrs='maxlength="80" autofocus') }}
+  {{ field('email', 'البريد الإلكتروني', values.email, errors, type='email', required=true, autocomplete='email', attrs='dir="ltr" maxlength="254"') }}
+  {{ field('phone', 'رقم الهاتف (اختياري)', values.phone, errors, type='tel', autocomplete='tel', attrs='dir="ltr" inputmode="tel" placeholder="07XX XXX XXXX" maxlength="20"') }}
+  <div class="field {{ 'has-error' if errors.password }}">
+    <label for="f-password">كلمة المرور <span class="req">*</span></label>
+    <div class="password-wrap">
+      <input id="f-password" name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" dir="ltr" data-strength>
+      <button type="button" class="icon-btn" data-toggle-password aria-label="إظهار كلمة المرور">{{ icon('eye') }}</button>
+    </div>
+    <div class="strength" data-strength-meter aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    {% if errors.password %}<p class="field-error">{{ errors.password }}</p>{% else %}<p class="field-hint">8 أحرف على الأقل، حروف وأرقام معاً</p>{% endif %}
+  </div>
+  <div class="field {{ 'has-error' if errors.password_confirm }}">
+    <label for="f-password_confirm">تأكيد كلمة المرور <span class="req">*</span></label>
+    <input id="f-password_confirm" name="password_confirm" type="password" required maxlength="128" autocomplete="new-password" dir="ltr">
+    {% if errors.password_confirm %}<p class="field-error">{{ errors.password_confirm }}</p>{% endif %}
+  </div>
+  <button type="submit" class="btn btn-primary btn-lg btn-block btn-shine" data-submit-once>إنشاء الحساب {{ icon('arrow-left') }}</button>
+</form>
+
+<p class="auth-switch">لديكِ حساب؟ <a href="/login{% if next %}?next={{ next|urlencode }}{% endif %}">سجّلي الدخول</a></p>
+{% endblock %}

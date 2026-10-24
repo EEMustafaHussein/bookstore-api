@@ -1,0 +1,81 @@
+{% extends "admin/base.html" %}
+{% from "partials/macros.html" import icon, csrf, status_pill with context %}
+{% block title %}طلب #{{ order.id }}{% endblock %}
+{% block heading %}طلب رقم #{{ order.id }} {{ status_pill(order) }}{% endblock %}
+{% block subheading %}<p>{{ order.created_at|local_dt }}</p>{% endblock %}
+{% block actions %}<a href="/admin/orders" class="btn btn-outline btn-sm">{{ icon('arrow-right') }} كل الطلبات</a>{% endblock %}
+
+{% block content %}
+{% if order.status == OrderStatus.cancelled and order.payment_status == PaymentStatus.paid %}
+<div class="notice notice-error">{{ icon('alert') }} هذا الطلب ملغي لكنه مدفوع بالبطاقة — أرجع المبلغ للزبونة من لوحة Stripe.</div>
+{% endif %}
+
+<div class="admin-cols admin-cols-wide">
+  <section class="panel">
+    <h2 class="panel-title">{{ icon('bag') }} القطع ({{ order.item_count }})</h2>
+    <ul class="mini-lines">
+      {% for item in order.items %}
+      <li>
+        <span class="mini-thumb"><img src="{{ item.image|media }}" alt="" loading="lazy"><b>{{ item.quantity }}</b></span>
+        <span class="mini-info">
+          {% if item.product_id %}<a href="/admin/products/{{ item.product_id }}"><strong>{{ item.product_name }}</strong></a>{% else %}<strong>{{ item.product_name }}</strong> <small class="muted">(محذوف)</small>{% endif %}
+          <small>{{ item.unit_price|money }}{% if item.size %} · المقاس {{ item.size }}{% endif %}{% if item.color %} · {{ item.color }}{% endif %}</small>
+        </span>
+        <span class="mini-price">{{ item.line_total|money }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="summary-row"><span>المجموع</span><span>{{ order.subtotal|money }}</span></div>
+    <div class="summary-row"><span>التوصيل</span><span>{{ order.shipping_fee|money }}</span></div>
+    <div class="summary-row summary-total"><span>الإجمالي</span><strong>{{ order.total|money }}</strong></div>
+  </section>
+
+  <div class="stack">
+    <section class="panel">
+      <h2 class="panel-title">{{ icon('refresh') }} تحديث الحالة</h2>
+      {% if order.status == OrderStatus.cancelled %}
+      <p class="muted">هذا الطلب ملغي وأُعيدت قطعه إلى المخزون.</p>
+      {% else %}
+      <form method="post" action="/admin/orders/{{ order.id }}/status" class="stack">
+        {{ csrf() }}
+        <div class="status-picker">
+          {% for status in ADMIN_ORDER_STATUSES %}
+          <label class="status-option status-{{ status.value }}">
+            <input type="radio" name="status" value="{{ status.value }}" {% if status == order.status %}checked{% endif %}>
+            <span>{{ ORDER_STATUS_LABELS[status] }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% if order.payment_status != PaymentStatus.paid %}
+        <label class="check"><input type="checkbox" name="mark_paid"> تم استلام المبلغ</label>
+        {% endif %}
+        <p class="field-hint">عند اختيار «ملغي» تُعاد القطع إلى المخزون تلقائياً. طلبات الدفع عند الاستلام تُسجَّل مدفوعة عند «تم التسليم».</p>
+        <button type="submit" class="btn btn-primary btn-block">حفظ الحالة</button>
+      </form>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">{{ icon('pin') }} الزبونة والتوصيل</h2>
+      <p class="address-block"><strong>{{ order.full_name }}</strong><br>
+        <a href="tel:{{ order.phone }}" dir="ltr">{{ order.phone }}</a><br>
+        {{ order.governorate }} — {{ order.city }}<br>{{ order.address }}</p>
+      {% if order.notes %}<p class="notice notice-info">{{ icon('info') }} {{ order.notes }}</p>{% endif %}
+      <div class="row-actions">
+        <a class="btn btn-outline btn-sm" href="tel:{{ order.phone }}">{{ icon('phone') }} اتصال</a>
+        <a class="btn btn-outline btn-sm" href="https://wa.me/964{{ order.phone[1:] }}" target="_blank" rel="noopener noreferrer">{{ icon('whatsapp') }} واتساب</a>
+      </div>
+      <p class="muted small">الحساب: {{ order.user.name }} — <span dir="ltr">{{ order.user.email }}</span></p>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">{{ icon('card') }} الدفع</h2>
+      <p>{{ PAYMENT_METHOD_LABELS[order.payment_method] }}</p>
+      <p><span class="pill {{ 'pill-delivered' if order.payment_status == PaymentStatus.paid else 'pill-new' }}">{{ PAYMENT_STATUS_LABELS[order.payment_status] }}</span>
+        {% if order.payment_provider == 'demo' %}<span class="pill pill-awaiting_payment">دفع تجريبي</span>{% endif %}</p>
+      {% if order.paid_at %}<p class="muted small">وقت الدفع: {{ order.paid_at|local_dt }}</p>{% endif %}
+      {% if order.payment_reference %}<p class="muted small" dir="ltr">{{ order.payment_reference }}</p>{% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

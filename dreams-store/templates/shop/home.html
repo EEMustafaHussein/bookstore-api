@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, product_card, social_links with context %}
+{% block body_class %}page-home has-hero{% endblock %}
+
+{% block content %}
+<section class="hero" data-hero>
+  <div class="aurora" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <canvas class="stars" data-stars aria-hidden="true"></canvas>
+  <div class="hero-moon" aria-hidden="true"></div>
+
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow hero-in" style="--d: 0">{{ icon('sparkle') }} {{ site.tagline }}</p>
+      <h1 class="hero-title" data-split>{{ site.hero_title }}</h1>
+      <p class="hero-sub hero-in" style="--d: 3">{{ site.hero_subtitle }}</p>
+      <div class="hero-cta hero-in" style="--d: 4">
+        <a href="/shop?section=new" class="btn btn-light btn-lg btn-shine" data-magnetic>تسوّقي الجديد {{ icon('arrow-left') }}</a>
+        <a href="/bala" class="btn btn-glass btn-lg" data-magnetic>اكتشفي البالة {{ icon('sparkle') }}</a>
+      </div>
+      <dl class="hero-stats hero-in" style="--d: 5">
+        <div><dt>قطعة متوفرة</dt><dd data-count="{{ counts.products }}">{{ counts.products }}</dd></div>
+        <div><dt>قطعة بالة فريدة</dt><dd data-count="{{ counts.bala }}">{{ counts.bala }}</dd></div>
+        <div><dt>محافظة نوصل لها</dt><dd data-count="{{ GOVERNORATES|length }}">{{ GOVERNORATES|length }}</dd></div>
+      </dl>
+    </div>
+
+    <div class="hero-visual" data-parallax aria-hidden="true">
+      {% for slot in range(3) %}
+      {% set item = hero_items[slot] if hero_items|length > slot else none %}
+      <figure class="arch arch-{{ slot + 1 }}" data-depth="{{ [0.6, 1.2, 0.9][slot] }}">
+        {% if item %}
+        <img src="{{ item.cover|media }}" alt="" {% if slot == 0 %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+        {% else %}
+        <span class="arch-fill arch-fill-{{ slot + 1 }}">{{ icon(['dress', 'sparkle', 'hanger'][slot]) }}</span>
+        {% endif %}
+      </figure>
+      {% endfor %}
+      <div class="orbit-badge">
+        <svg viewBox="0 0 120 120">
+          <defs><path id="orbit-path" d="M60,60 m-46,0 a46,46 0 1,1 92,0 a46,46 0 1,1 -92,0"/></defs>
+          <text text-anchor="middle"><textPath href="#orbit-path" startOffset="50%">{{ site.site_name }} ✦ أناقة ✦ بالة فريدة ✦ </textPath></text>
+        </svg>
+        <span>{{ icon('logo-moon') }}</span>
+      </div>
+      {% if hero_items %}
+      <a class="float-card" href="/product/{{ hero_items[0].id }}" tabindex="-1">
+        <img src="{{ hero_items[0].cover|media }}" alt="">
+        <span><small>{{ 'قطعة مميزة' if hero_items[0].is_featured else 'وصل حديثاً' }}</small><strong>{{ hero_items[0].name }}</strong><em>{{ hero_items[0].price|money }}</em></span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <a href="#discover" class="scroll-cue" aria-label="انزلي للأسفل"><span></span></a>
+</section>
+
+{% set marquee_words = categories|map(attribute='category.name')|list or ['فساتين', 'عبايات', 'بلايز', 'تنانير', 'بالة', 'إكسسوارات'] %}
+<div class="mega-marquee" aria-hidden="true">
+  <div class="mega-track">
+    {% for _ in range(3) %}{% for word in marquee_words %}<span>{{ word }}</span><i>✦</i>{% endfor %}{% endfor %}
+  </div>
+</div>
+
+<div id="discover"></div>
+{% if categories %}
+<section class="section container" id="categories">
+  <header class="section-head reveal">
+    <p class="eyebrow">{{ icon('sparkle') }} الأقسام</p>
+    <h2>تسوّقي حسب <em>ذوقكِ</em></h2>
+    <a href="/shop" class="link-arrow">كل المنتجات {{ icon('arrow-left') }}</a>
+  </header>
+  <div class="category-grid">
+    {% for row in categories %}
+    <a href="/shop?category={{ row.category.id }}" class="category-card reveal" style="--i: {{ loop.index0 % 4 }}">
+      <span class="category-media">
+        {% if row.cover %}<img src="{{ row.cover|media }}" alt="" loading="lazy">{% else %}<span class="category-fill">{{ icon('hanger') }}</span>{% endif %}
+      </span>
+      <span class="category-label">
+        <strong>{{ row.category.name }}</strong>
+        <small>{{ row.count }} قطعة</small>
+      </span>
+      <span class="category-arrow">{{ icon('arrow-left') }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="section container" id="new">
+  <header class="section-head reveal">
+    <p class="eyebrow">{{ icon('sparkle') }} وصل حديثاً</p>
+    <h2>أحدث <em>القطع</em> في المتجر</h2>
+    <a href="/shop?section=new" class="link-arrow">عرض الكل {{ icon('arrow-left') }}</a>
+  </header>
+  {% if new_items %}
+  <div class="product-grid">
+    {% for p in new_items %}{{ product_card(p, loop.index0) }}{% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state reveal">
+    <div class="empty-orb">{{ icon('dress') }}</div>
+    <h3>القطع الجديدة في الطريق ✨</h3>
+    <p>لم تُضف منتجات بعد.{% if current_user and current_user.is_staff %} ابدئي بإضافة أول منتج من لوحة التحكم.{% endif %}</p>
+    {% if current_user and current_user.is_staff %}<a href="/admin/products/new" class="btn btn-primary">{{ icon('plus') }} إضافة منتج</a>{% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="bala-band" id="bala">
+  <div class="paper-grain" aria-hidden="true"></div>
+  <div class="container bala-grid">
+    <div class="bala-copy reveal">
+      <div class="stamp" aria-hidden="true">
+        <svg viewBox="0 0 120 120">
+          <defs><path id="stamp-path" d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0"/></defs>
+          <text text-anchor="middle"><textPath href="#stamp-path" startOffset="50%">بالة أصلية ✦ قطعة واحدة ✦ مختارة بعناية ✦ </textPath></text>
+        </svg>
+        <span>{{ icon('hanger') }}</span>
+      </div>
+      <p class="eyebrow eyebrow-vintage">ركن البالة</p>
+      <h2>قطع <em>فريدة</em><br>بحكاية خاصة</h2>
+      <p>ملابس بالة مختارة قطعةً قطعة، مفحوصة ونظيفة وبأسعار تفرحكِ. كل قطعة موجودة بنسخة واحدة فقط — إذا عجبتكِ لا تتأخري!</p>
+      <a href="/bala" class="btn btn-vintage btn-lg" data-magnetic>تصفّحي البالة {{ icon('arrow-left') }}</a>
+    </div>
+    <div class="bala-board">
+      {% if bala_items %}
+        {% for p in bala_items[:4] %}{{ product_card(p, loop.index0, 'polaroid') }}{% endfor %}
+      {% else %}
+        {% for n in range(3) %}
+        <div class="polaroid-ghost reveal" style="--i: {{ n }}; --r: {{ [-4, 3, -2][n] }}deg"><span>{{ icon(['dress', 'hanger', 'sparkle'][n]) }}</span><small>قريباً</small></div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="section container features">
+  {% set features = [
+    ('truck', 'توصيل لكل العراق', 'نوصل طلبكِ لباب البيت في كل المحافظات'),
+    ('cash', 'ادفعي براحتكِ', 'عند الاستلام' ~ (' أو بماستر كارد وفيزا' if settings.card_payments_enabled else ' نقداً لمندوب التوصيل')),
+    ('shield', 'تسوّق آمن', 'بياناتكِ محمية وحسابكِ مشفّر'),
+    ('sparkle', 'قطع مختارة بعناية', 'جودة نفحصها قبل أن تصلكِ'),
+  ] %}
+  {% for icon_name, title, text in features %}
+  <div class="feature reveal" style="--i: {{ loop.index0 }}">
+    <span class="feature-icon">{{ icon(icon_name) }}</span>
+    <div><h3>{{ title }}</h3><p>{{ text }}</p></div>
+  </div>
+  {% endfor %}
+</section>
+
+<section class="section container">
+  <div class="social-cta reveal">
+    <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="social-cta-copy">
+      <p class="eyebrow">{{ icon('heart') }} كوني قريبة منّا</p>
+      <h2>تابعي جديدنا أولاً بأول</h2>
+      <p>نعرض القطع الجديدة وقطع البالة أول بأول على صفحاتنا — تابعينا حتى ما تفوتكِ أي قطعة.</p>
+    </div>
+    {% set social = social_links(site, "social-big") %}
+    {% if social|trim %}{{ social }}{% else %}
+    <a href="/about" class="btn btn-light">{{ icon('user') }} تعرّفي على المصمم</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

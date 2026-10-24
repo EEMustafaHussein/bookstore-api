@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}
+{% from "partials/macros.html" import icon, csrf with context %}
+{% set about = site.about %}
+{% block title %}صفحة من أنا{% endblock %}
+{% block heading %}صفحة «من أنا»{% endblock %}
+{% block subheading %}<p>تعريف بالمصمم: الاسم، النبذة، المواقع ورقم الهاتف.</p>{% endblock %}
+{% block actions %}<a href="/about" target="_blank" rel="noopener" class="btn btn-outline btn-sm">{{ icon('eye') }} عرض الصفحة</a>{% endblock %}
+
+{% block content %}
+<form method="post" action="/admin/about" enctype="multipart/form-data" class="settings-form">
+  {{ csrf() }}
+  <div class="admin-cols admin-cols-wide">
+    <div class="stack">
+      <section class="panel">
+        <h2 class="panel-title">{{ icon('user') }} المعلومات الشخصية</h2>
+        <div class="form-grid">
+          <div class="field"><label for="ab-name">الاسم <span class="req">*</span></label><input id="ab-name" name="name" value="{{ about.name }}" required maxlength="80"></div>
+          <div class="field"><label for="ab-title">المسمى / التخصص</label><input id="ab-title" name="title" value="{{ about.title }}" maxlength="120"></div>
+          <div class="field"><label for="ab-phone">رقم الهاتف</label><input id="ab-phone" name="phone" value="{{ about.phone }}" dir="ltr" maxlength="30" placeholder="07XX XXX XXXX"><p class="field-hint">يظهر زر اتصال وزر واتساب تلقائياً.</p></div>
+          <div class="field"><label for="ab-email">البريد الإلكتروني</label><input id="ab-email" name="email" type="email" value="{{ about.email }}" dir="ltr" maxlength="254"></div>
+          <div class="field"><label for="ab-location">المدينة / البلد</label><input id="ab-location" name="location" value="{{ about.location }}" maxlength="80"></div>
+          <div class="field"><label for="ab-skills">المهارات (افصل بفاصلة)</label><input id="ab-skills" name="skills" value="{{ about.skills }}" maxlength="300"></div>
+        </div>
+        <div class="field"><label for="ab-bio">النبذة</label><textarea id="ab-bio" name="bio" rows="7" maxlength="2000" data-counter>{{ about.bio }}</textarea><p class="field-hint"><span data-counter-value>0</span> / 2000</p></div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">{{ icon('globe') }} مواقعي</h2>
+        <p class="muted">أضف روابط مواقعك أو أعمالك (حتى {{ websites|length }}). الصف الفارغ لا يظهر.</p>
+        <div class="website-rows">
+          {% for row in websites %}
+          <div class="website-row">
+            <span class="row-num">{{ loop.index }}</span>
+            <input name="website_label_{{ loop.index0 }}" value="{{ row.label }}" maxlength="60" placeholder="اسم الموقع (مثال: معرض أعمالي)" aria-label="اسم الموقع {{ loop.index }}">
+            <input name="website_url_{{ loop.index0 }}" value="{{ row.url }}" maxlength="300" dir="ltr" placeholder="https://" aria-label="رابط الموقع {{ loop.index }}">
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <section class="panel sticky-panel">
+      <h2 class="panel-title">{{ icon('image') }} الصورة الشخصية</h2>
+      <div class="photo-preview">
+        <div class="portrait portrait-sm" data-photo-preview>
+          {% if about.photo %}<img src="{{ about.photo|media }}" alt="">{% else %}<span class="portrait-initials">{{ about.name|initials }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="field"><label for="ab-photo">صورة جديدة</label><input id="ab-photo" type="file" name="photo" accept="image/*" class="file-input" data-photo-input></div>
+      {% if about.photo %}<label class="check"><input type="checkbox" name="remove_photo"> حذف الصورة الحالية</label>{% endif %}
+      <p class="field-hint">روابط مواقع التواصل تُعدَّل من <a href="/admin/settings">إعدادات المتجر</a> وتظهر هنا أيضاً.</p>
+      <button type="submit" class="btn btn-primary btn-lg btn-block btn-shine">{{ icon('check') }} حفظ الصفحة</button>
+    </section>
+  </div>
+</form>
+{% endblock %}

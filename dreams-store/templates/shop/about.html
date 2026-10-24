@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, social_links with context %}
+{% set about = site.about %}
+{% block title %}من أنا — {{ about.name }} | {{ site.site_name }}{% endblock %}
+{% block description %}{{ about.title }} — {{ about.bio|truncate(140) }}{% endblock %}
+{% block body_class %}page-about has-hero{% endblock %}
+
+{% block content %}
+<section class="about-hero">
+  <div class="aurora" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <canvas class="stars" data-stars aria-hidden="true"></canvas>
+  <div class="container about-grid">
+    <div class="about-portrait hero-in" style="--d: 0">
+      <div class="portrait-ring" aria-hidden="true"></div>
+      <div class="portrait">
+        {% if about.photo %}<img src="{{ about.photo|media }}" alt="{{ about.name }}">{% else %}<span class="portrait-initials">{{ about.name|initials }}</span>{% endif %}
+      </div>
+      <span class="portrait-tag">{{ icon('code') }} المصمم والمطوّر</span>
+    </div>
+
+    <div class="about-copy">
+      <p class="eyebrow hero-in" style="--d: 1">{{ icon('sparkle') }} من أنا</p>
+      <h1 class="hero-title about-name" data-split>{{ about.name }}</h1>
+      {% if about.title %}<p class="about-title hero-in" style="--d: 3">{{ about.title }}</p>{% endif %}
+      {% if about.location %}<p class="about-location hero-in" style="--d: 3">{{ icon('pin') }} {{ about.location }}</p>{% endif %}
+      <div class="about-actions hero-in" style="--d: 4">
+        {% if about.phone %}<a class="btn btn-light" href="tel:{{ about.phone|replace(' ', '') }}">{{ icon('phone') }} <span dir="ltr">{{ about.phone }}</span></a>{% endif %}
+        {% if about.whatsapp %}<a class="btn btn-glass" href="{{ about.whatsapp }}" target="_blank" rel="noopener noreferrer">{{ icon('whatsapp') }} واتساب</a>{% endif %}
+        {% if about.email %}<a class="btn btn-glass" href="mailto:{{ about.email }}">{{ icon('mail') }} راسلني</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="container section about-body">
+  <div class="about-card reveal">
+    <h2>{{ icon('user') }} نبذة عنّي</h2>
+    <p class="about-bio">{{ about.bio|nl2br }}</p>
+    {% set skills = (about.skills or '').replace('،', ',').split(',') %}
+    {% if about.skills %}
+    <ul class="skill-chips">
+      {% for skill in skills if skill.strip() %}<li style="--i: {{ loop.index0 }}">{{ skill.strip() }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+  <div class="about-side">
+    {% if about.websites %}
+    <div class="about-card reveal" style="--i: 1">
+      <h2>{{ icon('globe') }} مواقعي</h2>
+      <ul class="site-links">
+        {% for site_link in about.websites %}
+        <li>
+          <a href="{{ site_link.url }}" target="_blank" rel="noopener noreferrer">
+            <span class="site-link-icon">{{ icon('globe') }}</span>
+            <span><strong>{{ site_link.label }}</strong><small dir="ltr">{{ site_link.url.split('//', 1)[-1].rstrip('/') }}</small></span>
+            {{ icon('external') }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="about-card reveal" style="--i: 2">
+      <h2>{{ icon('phone') }} تواصل معي</h2>
+      <ul class="contact-cards">
+        {% if about.phone %}<li><a href="tel:{{ about.phone|replace(' ', '') }}">{{ icon('phone') }}<span><small>رقم الهاتف</small><strong dir="ltr">{{ about.phone }}</strong></span></a></li>{% endif %}
+        {% if about.email %}<li><a href="mailto:{{ about.email }}">{{ icon('mail') }}<span><small>البريد الإلكتروني</small><strong>{{ about.email }}</strong></span></a></li>{% endif %}
+        {% if not about.phone and not about.email %}<li class="muted">ستُضاف معلومات التواصل قريباً.</li>{% endif %}
+      </ul>
+      {{ social_links(site) }}
+    </div>
+  </div>
+</section>
+
+<section class="container section section-tight">
+  <div class="made-with reveal">
+    <span class="logo-mark">{{ icon('logo-moon') }}</span>
+    <p>صمّم <strong>{{ about.name }}</strong> متجر <strong>{{ site.site_name }}</strong> وبرمجه بالكامل بلغة Python وإطار FastAPI، بتصميم عصري متجاوب يعمل على كل الأجهزة.</p>
+    <a href="/shop" class="btn btn-primary">زوري المتجر {{ icon('arrow-left') }}</a>
+  </div>
+</section>
+{% endblock %}
