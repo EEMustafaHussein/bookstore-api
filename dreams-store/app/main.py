@@ -101,6 +101,11 @@ class SecurityHeadersMiddleware:
             await response(scope, receive, send)
             return
 
+        if scope["method"] == "HEAD":
+            # Health checks and link previews ask with HEAD: answer as for GET.
+            # The server itself leaves the body out of a HEAD reply.
+            scope = dict(scope, method="GET")
+
         async def send_with_headers(message):
             if message["type"] == "http.response.start":
                 headers = list(message.get("headers", []))

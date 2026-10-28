@@ -11,6 +11,11 @@ The owner writes in Iraqi Arabic; answer in Arabic. Store text for customers add
 - Same suite on PostgreSQL: `TEST_DATABASE_URL=postgresql://... pytest`
 - Local run: copy `.env.example` to `.env`, then `uvicorn app.main:app --reload`
 
+## Live deployment
+- Site: https://dreams-store-xcfg.onrender.com (Render free plan, Frankfurt, service `srv-dbh5iqmc6qcc73fuicog`, auto-deploys from `claude/compassionate-pasteur-qbubqj`)
+- Database: Neon project `late-bar-67546207` (`dreams-store`, Frankfurt); photos are stored in it (`MEDIA_STORAGE=database`)
+- Owner account: the owner's Render email; they were asked to change the temporary password at `/account`
+
 ## Deploying dreams-store for free (Render + Neon)
 The owner asked for a free public deployment. Use the Render and Neon connectors when they are connected:
 

@@ -63,3 +63,10 @@ def test_forms_require_csrf_token(client, db):
     )
     assert response.status_code == 403
     assert post(client, "/cart/add", {"product_id": product.id}).status_code == 303
+
+
+def test_head_requests_are_answered(client):
+    response = client.head("/")
+    assert response.status_code == 200
+    assert response.content == b""
+    assert client.head("/robots.txt").status_code == 200
