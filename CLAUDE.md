@@ -16,6 +16,11 @@ The owner writes in Iraqi Arabic; answer in Arabic. Store text for customers add
 - Database: Neon project `late-bar-67546207` (`dreams-store`, Frankfurt); photos are stored in it (`MEDIA_STORAGE=database`)
 - Owner account: the owner's Render email; they were asked to change the temporary password at `/account`
 
+## Photos the owner sends for bala listings
+- Images pasted in chat are base64 `image` blocks in the session transcript (`~/.claude/projects/<project>/<session>.jsonl`, about 1920 px max); decode them to the scratchpad.
+- Run `python tools/studio.py <photos> --out <dir>` from `dreams-store/` (needs `tools/requirements-studio.txt`; the rembg model downloads from GitHub releases on first run). Close-ups of fabric, labels or flaws: `--keep-background`.
+- Send the results back with SendUserFile, plus a ready listing text (name, price in IQD, size, condition). The owner uploads them in dashboard → المنتجات → منتج جديد (section بالة). Never hide flaws on bala pieces.
+
 ## Deploying dreams-store for free (Render + Neon)
 The owner asked for a free public deployment. Use the Render and Neon connectors when they are connected:
 

@@ -1,0 +1,3 @@
+# Only needed for tools/studio.py (photo preparation), not for running the shop.
+pillow==13.0.0
+rembg[cpu]==2.0.86
