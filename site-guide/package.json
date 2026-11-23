@@ -1,0 +1,16 @@
+{
+  "name": "site-guide",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site map with GPS position, voice navigation between units and shared work orders.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "8.13.1"
+  }
+}
