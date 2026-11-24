@@ -146,16 +146,16 @@ details.panel > summary::-webkit-details-marker { display: none; }
 details.panel > summary::after { content: "＋"; color: var(--muted); }
 details.panel[open] > summary::after { content: "－"; }
 .panel-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 14px; }
-fieldset { border: 1px solid var(--line); border-radius: 12px; margin: 0; padding: 10px 12px 12px; display: grid; gap: 10px; min-width: 0; }
+fieldset { border: 1px solid var(--line); border-radius: 12px; margin: 0; padding: 10px 12px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
 legend { font-weight: 800; padding: 0 6px; }
 .field { display: grid; gap: 4px; min-width: 0; }
 .field > span, .field > label { font-size: .9rem; font-weight: 600; }
 .key-row { display: flex; gap: 8px; }
-.key-row input { flex: 1; min-width: 0; }
+.key-row input { flex: 1 1 0; width: 0; min-width: 0; }
 .field a { color: var(--me); font-weight: 600; }
-#elKeyNote:empty { display: none; }
-#elKeyNote.ok { color: var(--me); }
-#elKeyNote.bad { color: var(--danger); }
+#keyNote:empty { display: none; }
+#keyNote.ok { color: var(--me); }
+#keyNote.bad { color: var(--danger); }
 .field > small, fieldset > small { color: var(--muted); font-size: .8rem; }
 .field input[type="range"] { width: 100%; accent-color: var(--me); }
 .check { display: flex; gap: 8px; align-items: flex-start; font-size: .9rem; }
@@ -163,6 +163,8 @@ legend { font-weight: 800; padding: 0 6px; }
 ol.steps { margin: 0; padding-inline-start: 1.3rem; color: var(--muted); font-size: .9rem; }
 ol.steps li + li { margin-top: 2px; }
 textarea { width: 100%; resize: vertical; }
+details.sub > summary { cursor: pointer; color: var(--muted); font-weight: 600; padding-block: 4px; }
+details.sub[open] > summary { margin-bottom: 10px; }
 @media (prefers-reduced-motion: reduce) {
   .pill[data-kind="rec"]::before { animation: none; }
   .mic, .ear { transition: none; }
@@ -206,7 +208,7 @@ textarea { width: 100%; resize: vertical; }
   </div>
 
   <section class="stage">
-    <button class="mic" id="micBtn" type="button" aria-pressed="false">ابدأ<small>اضغط وخلّي التلفون بالنص</small></button>
+    <button class="mic" id="micBtn" type="button" aria-pressed="false">ابدأ<small>خلّي التلفون بينكم</small></button>
     <div class="meter" aria-hidden="true"><i id="meterFill"></i><b id="meterThr"></b></div>
     <p class="hint" id="micHint">بعد كل جملة اسكت لحظة حتى يترجمها.</p>
     <p class="warn" id="micWarn" hidden></p>
@@ -238,38 +240,22 @@ textarea { width: 100%; resize: vertical; }
       </ol>
 
       <fieldset>
-        <legend>المفاتيح</legend>
+        <legend>المفتاح المجاني</legend>
         <div class="field">
-          <label for="elKey">1. مفتاح ElevenLabs (للكلام والصوت)</label>
+          <label for="geKey">مفتاح Google Gemini</label>
           <div class="key-row">
-            <input type="password" id="elKey" data-setting="elKey" class="ltr" autocomplete="off" spellcheck="false" placeholder="sk_...">
-            <button class="btn small" type="button" data-paste="elKey">الصق</button>
+            <input type="password" id="geKey" data-setting="geKey" class="ltr" autocomplete="off" spellcheck="false" placeholder="AIza...">
+            <button class="btn small" type="button" data-paste="geKey">الصق</button>
           </div>
-          <small><a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener">افتح صفحة مفاتيح ElevenLabs</a>، سجّل دخول، اضغط Create Key، انسخ المفتاح، وارجع اضغط الصق.</small>
-          <small id="elKeyNote" aria-live="polite"></small>
+          <small><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">افتح صفحة المفتاح المجاني</a>، سجّل دخول بحساب جيميل، اضغط Create API key، انسخ المفتاح، وارجع اضغط الصق. ما يحتاج بطاقة.</small>
+          <small id="keyNote" aria-live="polite"></small>
         </div>
-        <div class="field">
-          <label for="anKey">2. مفتاح Claude (للترجمة)</label>
-          <div class="key-row">
-            <input type="password" id="anKey" data-setting="anKey" class="ltr" autocomplete="off" spellcheck="false" placeholder="sk-ant-...">
-            <button class="btn small" type="button" data-paste="anKey">الصق</button>
-          </div>
-          <small>أول شي <a href="https://platform.claude.com/settings/billing" target="_blank" rel="noopener">اشحن رصيد</a> (Buy credits)، وبعدها <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">افتح صفحة المفاتيح</a>، اضغط Create Key، انسخ المفتاح، وارجع اضغط الصق.</small>
-        </div>
-        <label class="check"><input type="checkbox" id="showKeys"> اعرض المفاتيح</label>
-        <small>المفاتيح تنحفظ بس على هذا التلفون، وتنرسل مباشرة لـ ElevenLabs و Anthropic.</small>
+        <label class="check"><input type="checkbox" id="showKeys"> اعرض المفتاح</label>
+        <small>المفتاح ينحفظ بس على هذا التلفون، وينرسل مباشرة لـ Google.</small>
       </fieldset>
 
       <fieldset>
-        <legend>الترجمة</legend>
-        <label class="field">
-          <span>نموذج الترجمة</span>
-          <select id="claudeModel" data-setting="claudeModel">
-            <option value="claude-opus-5-5">Claude Opus 5.5 (الأدق)</option>
-            <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (أسرع)</option>
-            <option value="claude-haiku-5-5">Claude Haiku 5.5 (الأسرع والأرخص)</option>
-          </select>
-        </label>
+        <legend>التكات والأصوات</legend>
         <label class="field">
           <span>تكتك</span>
           <select id="myEar" data-setting="myEar">
@@ -284,35 +270,32 @@ textarea { width: 100%; resize: vertical; }
             <option value="both">كل الترجمات بالتكتين (للتجربة لوحدك)</option>
           </select>
         </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>الأصوات</legend>
         <label class="field">
           <span>الصوت اللي تسمعه إنت (عربي)</span>
-          <select id="voiceMe" data-setting="voiceMe"><option value="">أدخل مفتاح ElevenLabs أولاً</option></select>
+          <select id="voiceMe" data-setting="voiceMe" class="voice-select"></select>
         </label>
         <label class="field">
           <span>الصوت اللي يسمعه الشخص المقابل</span>
-          <select id="voicePartner" data-setting="voicePartner"><option value="">أدخل مفتاح ElevenLabs أولاً</option></select>
-        </label>
-        <div class="row"><button class="btn small" id="reloadVoices" type="button">حدّث قائمة الأصوات</button><span class="hint" id="voiceNote"></span></div>
-        <label class="field">
-          <span>نموذج الصوت للعربي والتركي والإنكليزي</span>
-          <input type="text" class="ltr" data-setting="ttsFast" spellcheck="false">
-          <small>الافتراضي eleven_flash_v2_5 لأنه الأسرع.</small>
-        </label>
-        <label class="field">
-          <span>نموذج الصوت للكردي</span>
-          <input type="text" class="ltr" data-setting="ttsKurdish" spellcheck="false">
-          <small>إذا ما اشتغل، التطبيق يجرب eleven_v3 ثم eleven_multilingual_v2.</small>
-        </label>
-        <label class="field">
-          <span>نموذج تحويل الكلام لنص</span>
-          <input type="text" class="ltr" data-setting="sttModel" spellcheck="false">
-          <small>إذا ما اشتغل، التطبيق يجرب scribe_v2 ثم scribe_v1.</small>
+          <select id="voicePartner" data-setting="voicePartner" class="voice-select"></select>
         </label>
       </fieldset>
+
+      <details class="sub">
+        <summary>إعدادات متقدمة</summary>
+        <fieldset>
+          <legend>النماذج</legend>
+          <small id="modelNote">النماذج تنختار تلقائياً بعد فحص المفتاح.</small>
+          <label class="field">
+            <span>نموذج السماع والترجمة</span>
+            <input type="text" class="ltr" data-setting="understandModel" spellcheck="false" placeholder="تلقائي">
+          </label>
+          <label class="field">
+            <span>نموذج الصوت</span>
+            <input type="text" class="ltr" data-setting="ttsModel" spellcheck="false" placeholder="تلقائي">
+          </label>
+          <small>خليهم فارغين. إذا خلصت الحصة المجانية لنموذج، التطبيق يجرب النموذج اللي بعده.</small>
+        </fieldset>
+      </details>
 
       <fieldset>
         <legend>المايك</legend>
@@ -353,8 +336,15 @@ textarea { width: 100%; resize: vertical; }
 
 <script type="module">
 // ---------- Config ----------
-const SDK_URL = "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.7.0/+esm";
-const EL_API = "https://api.elevenlabs.io";
+const G_API = "https://generativelanguage.googleapis.com/v1beta";
+// Free-tier quotas are per model, so when one runs out the next one in the list is tried.
+const UNDERSTAND_MODELS = ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.8-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash"];
+const TTS_FAST = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts", "gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts"];
+const TTS_WIDE = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts", "gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts"]; // most languages first, for Kurdish
+const VOICES = [
+  ["Kore", "Kore · امرأة، واضح"], ["Aoede", "Aoede · امرأة، هادئ"], ["Leda", "Leda · امرأة، شبابي"],
+  ["Puck", "Puck · رجل، حيوي"], ["Charon", "Charon · رجل، رزين"], ["Fenrir", "Fenrir · رجل، قوي"], ["Orus", "Orus · رجل، ثابت"],
+];
 const FRAME_MS = 20;          // analysis frame
 const PRE_MS = 300;           // audio kept from before speech starts
 const START_FRAMES = 3;       // loud frames in a row that start a sentence
@@ -364,18 +354,17 @@ const TAIL_KEEP_MS = 200;     // silence kept at the end of a sentence
 const CALIB_FRAMES = 25;      // first 0.5 s measures the room noise
 
 const LANGS = {
-  ar:  { label: "عربي", native: "عربي" },
-  ckb: { label: "كردي سوراني", native: "کوردی" },
-  tr:  { label: "تركي", native: "Türkçe" },
-  en:  { label: "إنكليزي", native: "English" },
+  ar:  { native: "عربي", speech: "ar" },
+  ckb: { native: "کوردی", speech: "ku" },
+  tr:  { native: "Türkçe", speech: "tr" },
+  en:  { native: "English", speech: "en" },
 };
 
 const DEFAULTS = {
-  elKey: "", anKey: "", claudeModel: "claude-opus-5-5", myEar: "left", outputMode: "split", partnerLang: "ckb",
-  sttModel: "scribe_v3", ttsFast: "eleven_flash_v2_5", ttsKurdish: "eleven_v3", voiceMe: "", voicePartner: "",
-  sensitivity: 12, silenceMs: 700, micId: "", micProcessing: false,
+  geKey: "", myEar: "left", outputMode: "split", partnerLang: "ckb", voiceMe: "Kore", voicePartner: "Puck",
+  understandModel: "", ttsModel: "", sensitivity: 12, silenceMs: 700, micId: "", micProcessing: false,
 };
-const STORE_KEY = "turjuman.settings.v1";
+const STORE_KEY = "turjuman.settings.v2";
 const S = (() => {
   const s = { ...DEFAULTS };
   try { const raw = localStorage.getItem(STORE_KEY); if (raw) Object.assign(s, JSON.parse(raw)); } catch {}
@@ -390,11 +379,14 @@ const uniq = (arr) => [...new Set(arr.filter(Boolean))];
 const otherEar = (ear) => (ear === "left" ? "right" : "left");
 
 class UserError extends Error {}
-class ElevenError extends Error {
-  constructor(status, detail) { super(detail || `HTTP ${status}`); this.status = status; this.detail = detail || ""; }
+class GeminiError extends Error {
+  constructor(status, message) { super(message || `HTTP ${status}`); this.status = status; }
 }
 
 // ---------- Settings binding ----------
+for (const sel of document.querySelectorAll(".voice-select")) {
+  sel.replaceChildren(...VOICES.map(([id, label]) => new Option(label, id)));
+}
 const settingEls = [...document.querySelectorAll("[data-setting]")];
 function syncInputs() {
   for (const el of settingEls) {
@@ -430,15 +422,12 @@ for (const b of document.querySelectorAll("[data-paste]")) {
     }
   });
 }
-$("#showKeys").addEventListener("change", (e) => {
-  for (const id of ["#elKey", "#anKey"]) $(id).type = e.target.checked ? "text" : "password";
-});
+$("#showKeys").addEventListener("change", (e) => { $("#geKey").type = e.target.checked ? "text" : "password"; });
 
 function onSettingChanged(k) {
   if (["myEar", "outputMode", "partnerLang"].includes(k)) renderEars();
-  if (k === "elKey") { sttWorking = null; for (const key in ttsWorking) delete ttsWorking[key]; loadVoices(); }
-  if (k === "sttModel") sttWorking = null;
-  if (k === "ttsFast" || k === "ttsKurdish") for (const key in ttsWorking) delete ttsWorking[key];
+  if (k === "geKey") { blocked.clear(); checkKey(); }
+  if (k === "understandModel" || k === "ttsModel") { blocked.clear(); showModels(); }
   if ((k === "micId" || k === "micProcessing") && mic) restartMic();
 }
 
@@ -524,6 +513,23 @@ function playBuffer(buffer, ear) {
     src.start();
   });
 }
+// The phone's own voice: free and unlimited, but it plays in both ears and has no Kurdish.
+function phoneSpeak(text, lang) {
+  return new Promise((resolve, reject) => {
+    if (!("speechSynthesis" in window)) return reject(new UserError("المتصفح ما بيه صوت."));
+    const prefix = LANGS[lang]?.speech || lang;
+    const voice = speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().replace("_", "-").startsWith(prefix));
+    if (!voice) return reject(new UserError(lang === "ckb" ? "التلفون ما بيه صوت كردي." : "التلفون ما بيه صوت لهاي اللغة."));
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = voice;
+    u.lang = voice.lang;
+    u.onend = () => { flashEar("both", false); resolve(); };
+    u.onerror = (e) => { flashEar("both", false); reject(new UserError("صوت التلفون ما اشتغل: " + e.error)); };
+    flashEar("both", true);
+    speechSynthesis.speak(u);
+  });
+}
+if ("speechSynthesis" in window) speechSynthesis.getVoices(); // starts loading the voice list
 function beep(freq, ear) {
   const c = audioCtx();
   return new Promise((resolve) => {
@@ -744,209 +750,176 @@ function encodeWav(samples, rate) {
   }
   return new Blob([buf], { type: "audio/wav" });
 }
+async function blobToBase64(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function base64ToBytes(b64) {
+  const s = atob(b64);
+  const out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+  return out;
+}
+function pcm16ToBuffer(bytes, rate) {
+  const n = Math.floor(bytes.length / 2);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, n * 2);
+  const buf = audioCtx().createBuffer(1, Math.max(1, n), rate);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = view.getInt16(i * 2, true) / 32768;
+  return buf;
+}
 
-// ---------- ElevenLabs: speech-to-text, text-to-speech, voices ----------
-async function elFetch(path, opts = {}) {
-  if (!S.elKey) throw new UserError("أدخل مفتاح ElevenLabs بالإعدادات.");
+// ---------- Google Gemini (free tier) ----------
+let available = null;        // model ids this key can use, once the key check has run
+const blocked = new Map();   // model -> time until which it is skipped (quota used up or not offered)
+
+function modelChain(override, list) {
+  let models = uniq([override, ...list]);
+  if (available) {
+    const listed = models.filter((m) => available.has(m) || m === override);
+    if (listed.length) models = listed;
+  }
+  const now = Date.now();
+  const open = models.filter((m) => (blocked.get(m) || 0) <= now);
+  return open.length ? open : models;
+}
+async function gemini(model, body) {
+  if (!S.geKey) throw new UserError("حط المفتاح المجاني بالإعدادات.");
   let res;
   try {
-    res = await fetch(EL_API + path, { ...opts, headers: { "xi-api-key": S.elKey, ...(opts.headers || {}) } });
+    res = await fetch(`${G_API}/models/${model}:generateContent`, {
+      method: "POST",
+      headers: { "x-goog-api-key": S.geKey, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
   } catch {
-    throw new UserError("ما كدرت أوصل لـ ElevenLabs. تأكد من الإنترنت.");
+    throw new UserError("ما كدرت أوصل لـ Google. تأكد من الإنترنت.");
   }
-  if (!res.ok) {
-    let detail = "";
-    try {
-      const j = await res.json();
-      const d = j?.detail ?? j;
-      detail = typeof d === "string" ? d : d?.message || d?.status || JSON.stringify(d);
-    } catch {}
-    throw new ElevenError(res.status, detail);
-  }
-  return res;
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new GeminiError(res.status, j?.error?.message || "");
+  return j;
 }
-function elevenErrorText(e) {
-  if (!(e instanceof ElevenError)) return e?.message || String(e);
-  if (e.status === 401) return "مفتاح ElevenLabs غلط أو ما عنده صلاحية لهذي الخدمة.";
-  if (e.status === 402 || /quota|credits/i.test(e.detail)) return "خلص رصيد ElevenLabs.";
-  if (e.status === 429) return "ElevenLabs مضغوط أو وصلت الحد. انتظر شوية.";
-  return `خطأ من ElevenLabs (${e.status}): ${e.detail}`;
-}
-const isModelProblem = (e) => e instanceof ElevenError && [400, 404, 422].includes(e.status) && /model|language|unsupported|not support/i.test(e.detail);
-
-let sttWorking = null;
-async function transcribe(wav) {
-  const models = sttWorking ? [sttWorking] : uniq([S.sttModel, "scribe_v2", "scribe_v1"]);
+async function callModels(models, body) {
   let lastErr;
   for (const model of models) {
-    const fd = new FormData();
-    fd.append("file", wav, "speech.wav");
-    fd.append("model_id", model);
-    fd.append("tag_audio_events", "false");
-    try {
-      const res = await elFetch("/v1/speech-to-text", { method: "POST", body: fd });
-      const j = await res.json();
-      sttWorking = model;
-      return { text: (j.text || "").trim(), lang: j.language_code || null, prob: j.language_probability ?? null };
-    } catch (e) {
+    try { return { json: await gemini(model, body), model }; }
+    catch (e) {
       lastErr = e;
-      if (!isModelProblem(e)) throw e;
+      if (!(e instanceof GeminiError)) throw e;
+      if (e.status === 404) { blocked.set(model, Infinity); continue; }
+      if (e.status === 429) { blocked.set(model, Date.now() + (/day/i.test(e.message) ? 6 * 3600e3 : 60e3)); continue; }
+      if (e.status === 400 && !/key|location/i.test(e.message) && /model|modalit|not supported|unsupported/i.test(e.message)) { blocked.set(model, Infinity); continue; }
+      throw e;
     }
   }
   throw lastErr;
 }
-
-const ttsWorking = {};
-async function synthesize(text, lang, voiceId) {
-  if (!voiceId) throw new UserError("اختار صوت من الإعدادات ← الأصوات.");
-  const group = lang === "ckb" ? "ckb" : "other";
-  const chain = ttsWorking[group] ? [ttsWorking[group]]
-    : group === "ckb" ? uniq([S.ttsKurdish, "eleven_v3", "eleven_multilingual_v2"])
-    : uniq([S.ttsFast, "eleven_flash_v2_5", "eleven_multilingual_v2"]);
-  let lastErr;
-  for (const model of chain) {
-    try {
-      const res = await elFetch(`/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "audio/mpeg" },
-        body: JSON.stringify({ text, model_id: model }),
-      });
-      const data = await res.arrayBuffer();
-      const buffer = await audioCtx().decodeAudioData(data);
-      ttsWorking[group] = model;
-      return buffer;
-    } catch (e) {
-      lastErr = e;
-      if (!isModelProblem(e)) throw e;
-    }
-  }
-  throw lastErr;
-}
-
-async function loadVoices() {
-  const note = $("#voiceNote");
-  const keyNote = $("#elKeyNote");
-  const setKeyNote = (text, cls = "") => { keyNote.textContent = text; keyNote.className = cls; };
-  if (!S.elKey) { note.textContent = ""; setKeyNote(""); return; }
-  note.textContent = "يحمّل…";
-  setKeyNote("يفحص المفتاح…");
-  let voices = [];
-  try {
-    voices = (await (await elFetch("/v2/voices?page_size=100")).json()).voices || [];
-  } catch {
-    try { voices = (await (await elFetch("/v1/voices")).json()).voices || []; }
-    catch (e) { note.textContent = elevenErrorText(e); setKeyNote(elevenErrorText(e), "bad"); return; }
-  }
-  if (!voices.length) { note.textContent = "ما لكيت أصوات بحسابك."; setKeyNote("المفتاح شغال، بس ما لكيت أصوات بحسابك.", "bad"); return; }
-  for (const id of ["#voiceMe", "#voicePartner"]) {
-    const sel = $(id);
-    sel.replaceChildren(...voices.map((v) => new Option(v.name || v.voice_id, v.voice_id)));
-  }
-  const ids = voices.map((v) => v.voice_id);
-  if (!ids.includes(S.voiceMe)) S.voiceMe = ids[0];
-  if (!ids.includes(S.voicePartner)) S.voicePartner = ids[1] || ids[0];
-  save(); syncInputs();
-  note.textContent = `${voices.length} صوت`;
-  setKeyNote(`المفتاح شغال (${voices.length} صوت).`, "ok");
-}
-$("#reloadVoices").addEventListener("click", loadVoices);
-
-// ---------- Claude: language check + translation ----------
-let sdk = null, claude = null, claudeKey = "";
-async function getClaude() {
-  if (!S.anKey) throw new UserError("أدخل مفتاح Claude بالإعدادات.");
-  if (!sdk) {
-    try { sdk = await import(SDK_URL); }
-    catch { throw new UserError("ما كدرت أحمّل مكتبة Claude. تأكد من الإنترنت."); }
-  }
-  if (!claude || claudeKey !== S.anKey) {
-    const Anthropic = sdk.default ?? sdk.Anthropic;
-    claude = new Anthropic({ apiKey: S.anKey, dangerouslyAllowBrowser: true, maxRetries: 1 });
-    claudeKey = S.anKey;
-  }
-  return claude;
-}
-function claudeErrorText(e) {
-  const A = sdk?.default ?? sdk?.Anthropic;
-  if (A) {
-    if (e instanceof A.AuthenticationError) return "مفتاح Claude غلط. صحّحه بالإعدادات.";
-    if (e instanceof A.PermissionDeniedError) return "مفتاح Claude ما عنده صلاحية لهذا النموذج.";
-    if (e instanceof A.NotFoundError) return "النموذج غير متاح لحسابك. اختار نموذج ثاني بالإعدادات.";
-    if (e instanceof A.RateLimitError) return "وصلت حد الاستخدام أو خلص الرصيد بحساب Claude.";
-    if (e instanceof A.APIConnectionError) return "ما كدرت أوصل لـ Claude. تأكد من الإنترنت.";
-    if (e instanceof A.APIError) return `خطأ من Claude (${e.status ?? "?"}): ${e.message}`;
+function errText(e) {
+  if (e instanceof UserError) return e.message;
+  if (e instanceof GeminiError) {
+    if (/API key not valid|API_KEY_INVALID|api key/i.test(e.message) && e.status === 400) return "المفتاح غلط. انسخه مرة ثانية من صفحة المفتاح والصقه.";
+    if (/location is not supported/i.test(e.message)) return "Google ما يسمح بهاي الخدمة من موقعك الحالي.";
+    if (e.status === 429) return "خلصت الحصة المجانية هسة. انتظر دقيقة، وإذا خلصت حصة اليوم ترجع باجر.";
+    if (e.status === 403) return "المفتاح ما عنده صلاحية. سوّي مفتاح جديد من صفحة المفتاح.";
+    if (e.status >= 500) return "Google مضغوط هسة. جرب بعد شوية.";
+    return `خطأ من Google (${e.status}): ${e.message}`;
   }
   return e?.message || String(e);
+}
+
+async function checkKey() {
+  const note = $("#keyNote");
+  available = null;
+  if (!S.geKey) { note.textContent = ""; note.className = ""; showModels(); return; }
+  note.textContent = "يفحص المفتاح…"; note.className = "";
+  try {
+    let res;
+    try { res = await fetch(`${G_API}/models?pageSize=1000`, { headers: { "x-goog-api-key": S.geKey } }); }
+    catch { throw new UserError("ما كدرت أوصل لـ Google. تأكد من الإنترنت."); }
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new GeminiError(res.status, j?.error?.message || "");
+    available = new Set((j.models || []).map((m) => String(m.name).replace(/^models\//, "")));
+    note.textContent = "المفتاح شغال.";
+    note.className = "ok";
+  } catch (e) {
+    note.textContent = errText(e);
+    note.className = "bad";
+  }
+  showModels();
+}
+function showModels() {
+  $("#modelNote").textContent = S.geKey
+    ? `السماع والترجمة: ${modelChain(S.understandModel, UNDERSTAND_MODELS)[0]} · الصوت: ${modelChain(S.ttsModel, TTS_FAST)[0]}`
+    : "النماذج تنختار تلقائياً بعد فحص المفتاح.";
 }
 
 const SYSTEM_PROMPT = `You are the interpreter inside an earbud translation app used in Iraq.
 The phone's owner speaks Arabic, usually Iraqi dialect. The other person speaks Central Kurdish (Sorani), Turkish or English.
 
-You receive the speech-recognition transcript of ONE spoken utterance, the recognizer's language guess, the other person's current language, and a few recent turns for context.
+You receive either an audio clip with ONE spoken utterance, or typed_text instead of audio. You also receive partner_language (the other person's current language: "ckb" = Central Kurdish/Sorani, "tr" = Turkish, "en" = English) and recent_turns for context.
 
-1. Decide the utterance language: "ar", "ckb", "tr" or "en". The recognizer's guess can be wrong: Sorani is sometimes labelled Arabic or Persian. Sorani is written in Arabic script with letters such as ڕ ڵ ێ ۆ ە and words such as ئەوە، چۆنی، باشم، دەتوانم، نازانم. Any Persian-looking text counts as "ckb".
-2. Translate it:
-   - If the language is "ar", translate into the other person's current language (given as partner_language).
-   - Otherwise translate into simple, natural spoken Arabic that an Iraqi understands at once.
-3. Write Sorani in the Kurdish Arabic-script alphabet and Turkish in Latin script.
+Return JSON with:
+- language: the utterance language, exactly one of "ar", "ckb", "tr", "en". Sorani can sound close to Persian; Kurdish or Persian-like speech is "ckb".
+- transcript: what was said, in its own language and script.
+- translation: if language is "ar", translate into partner_language. Otherwise translate into simple, natural spoken Arabic that an Iraqi understands at once.
 
-The transcript comes from speech recognition, so fix obvious recognition errors and translate the most likely meaning. Keep names, numbers and the speaker's tone. The translation will be spoken aloud: keep it short and conversational, with no notes, quotes or explanations. If the transcript is only noise or filler, return an empty translation.`;
+Write Sorani in the Kurdish Arabic-script alphabet (letters such as ڕ ڵ ێ ۆ ە) and Turkish in Latin script. Translate the meaning, not word by word; keep names, numbers and the speaker's tone. The translation will be read aloud, so keep it short and conversational, with no notes, quotes or explanations. If the audio has no clear speech (only noise, music or coughing), return an empty transcript and translation.`;
 
 const SCHEMA = {
-  type: "object",
+  type: "OBJECT",
   properties: {
-    language: { type: "string", enum: ["ar", "ckb", "tr", "en"] },
-    translation: { type: "string" },
+    language: { type: "STRING", description: 'One of "ar", "ckb", "tr", "en"' },
+    transcript: { type: "STRING" },
+    translation: { type: "STRING" },
   },
-  required: ["language", "translation"],
-  additionalProperties: false,
+  required: ["language", "transcript", "translation"],
 };
 
 const history = []; // last few turns, for context
-function normLang(code) {
-  if (!code) return null;
-  const c = String(code).toLowerCase();
-  if (["ar", "ara", "arb", "acm", "apc", "arz", "ayp", "afb"].includes(c) || c.startsWith("ar-")) return "ar";
-  if (["ckb", "ku", "kur", "kmr", "sdh"].includes(c)) return "ckb";
-  if (["tr", "tur"].includes(c)) return "tr";
-  if (["en", "eng"].includes(c)) return "en";
-  return c;
+function normLang(code, text = "") {
+  const c = String(code || "").toLowerCase().trim();
+  if (["ar", "ara", "arb", "acm", "arabic"].includes(c) || c.startsWith("ar-")) return "ar";
+  if (["ckb", "ku", "kur", "kmr", "sdh", "kurdish", "fa", "fas", "per"].includes(c)) return "ckb";
+  if (["tr", "tur", "turkish"].includes(c)) return "tr";
+  if (["en", "eng", "english"].includes(c)) return "en";
+  if (/[ڕڵێۆەڤ]/.test(text)) return "ckb";
+  if (/[؀-ۿ]/.test(text)) return "ar";
+  if (/[ğışİçöü]/i.test(text)) return "tr";
+  return "en";
 }
-async function translate(transcript, sttLang) {
-  const client = await getClaude();
-  const params = {
-    model: S.claudeModel,
-    max_tokens: 16000,
-    system: SYSTEM_PROMPT,
-    output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
-    messages: [{
-      role: "user",
-      content: JSON.stringify({
-        transcript,
-        recognizer_language: sttLang,
-        partner_language: S.partnerLang,
-        recent_turns: history.slice(-4),
-      }),
-    }],
-  };
-  const A = sdk.default ?? sdk.Anthropic;
-  let res;
-  if (S.claudeModel === "claude-haiku-5-5") {
-    res = await client.messages.create(params);
-  } else {
-    try {
-      // Server-side refusal fallback: if this model declines, the API retries on a fallback model in the same call.
-      res = await client.beta.messages.create({ ...params, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" });
-    } catch (e) {
-      if (e instanceof A.BadRequestError && /fallback/i.test(e.message)) res = await client.messages.create(params);
-      else throw e;
-    }
+async function understand({ wav, text }) {
+  const parts = [];
+  if (wav) parts.push({ inlineData: { mimeType: "audio/wav", data: await blobToBase64(wav) } });
+  parts.push({ text: JSON.stringify({ typed_text: text || null, partner_language: S.partnerLang, recent_turns: history.slice(-4) }) });
+  const { json, model } = await callModels(modelChain(S.understandModel, UNDERSTAND_MODELS), {
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: [{ role: "user", parts }],
+    generationConfig: { responseMimeType: "application/json", responseSchema: SCHEMA },
+  });
+  const cand = json.candidates?.[0];
+  const out = (cand?.content?.parts || []).filter((p) => typeof p.text === "string" && !p.thought).map((p) => p.text).join("");
+  if (!out) throw new UserError(json.promptFeedback?.blockReason || cand?.finishReason === "SAFETY" ? "Google رفض يترجم هاي الجملة." : "ما رجع رد من Google.");
+  let r;
+  try { r = JSON.parse(out); } catch { throw new UserError("رد Google ما انفهم. جرب مرة ثانية."); }
+  const transcript = String(r.transcript || text || "").trim();
+  return { language: normLang(r.language, transcript), transcript, translation: String(r.translation || "").trim(), model };
+}
+async function speakGemini(text, lang, voice) {
+  const { json, model } = await callModels(modelChain(S.ttsModel, lang === "ckb" ? TTS_WIDE : TTS_FAST), {
+    contents: [{ parts: [{ text }] }],
+    generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
+  });
+  const part = (json.candidates?.[0]?.content?.parts || []).find((p) => p.inlineData?.data);
+  if (!part) throw new UserError("ما رجع صوت من Google.");
+  const mime = part.inlineData.mimeType || "";
+  const bytes = base64ToBytes(part.inlineData.data);
+  if (/wav|mpeg|mp3|ogg|aac/i.test(mime)) {
+    return { buffer: await audioCtx().decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)), model };
   }
-  if (res.stop_reason === "refusal") throw new UserError("النموذج رفض يترجم هذي الجملة.");
-  const block = res.content.find((b) => b.type === "text");
-  if (!block) throw new UserError("ما رجعت ترجمة من Claude.");
-  const out = JSON.parse(block.text);
-  return { language: out.language, translation: (out.translation || "").trim() };
+  const rate = Number(/rate=(\d+)/i.exec(mime)?.[1]) || 24000; // raw 16-bit PCM, mono
+  return { buffer: pcm16ToBuffer(bytes, rate), model };
 }
 
 // ---------- Pipeline ----------
@@ -955,41 +928,33 @@ function handleUtterance({ wav, text }) {
   const entry = addEntry();
   pending++; refreshStatus();
   const job = (async () => {
-    let transcript = text, sttLang = null;
-    if (wav) {
-      entry.state("يحوّل الكلام لنص…");
-      const t0 = performance.now();
-      try {
-        const r = await transcribe(wav);
-        transcript = r.text; sttLang = normLang(r.lang);
-      } catch (e) { throw new UserError(elevenErrorText(e)); }
-      entry.time("نص", performance.now() - t0);
-      if (!transcript) { entry.remove(); return null; }
-    }
-    entry.original(transcript);
-    entry.state("يترجم…");
-    const t1 = performance.now();
-    let tr;
-    try { tr = await translate(transcript, sttLang); }
-    catch (e) { throw new UserError(e instanceof UserError ? e.message : claudeErrorText(e)); }
-    entry.time("ترجمة", performance.now() - t1);
-    if (!tr.translation) { entry.remove(); return null; }
+    entry.state(wav ? "يسمع ويترجم…" : "يترجم…");
+    const t0 = performance.now();
+    let r;
+    try { r = await understand({ wav, text }); }
+    catch (e) { throw new UserError(errText(e)); }
+    entry.time("ترجمة", performance.now() - t0);
+    if (!r.translation) { entry.remove(); return null; }
 
-    const who = tr.language === "ar" ? "me" : "them";
-    if (who === "them" && tr.language !== S.partnerLang) { S.partnerLang = tr.language; save(); syncInputs(); renderEars(); }
+    const who = r.language === "ar" ? "me" : "them";
+    if (who === "them" && r.language !== S.partnerLang) { S.partnerLang = r.language; save(); syncInputs(); renderEars(); }
     const target = who === "me" ? S.partnerLang : "ar";
-    entry.result(who, tr.language, target, tr.translation);
-    history.push({ speaker: who === "me" ? "owner" : "partner", text: transcript, translation: tr.translation });
+    entry.original(r.transcript);
+    entry.result(who, r.language, target, r.translation);
+    history.push({ speaker: who === "me" ? "owner" : "partner", text: r.transcript, translation: r.translation });
     if (history.length > 8) history.shift();
 
     entry.state("يجهّز الصوت…");
-    const t2 = performance.now();
-    let buffer;
-    try { buffer = await synthesize(tr.translation, target, who === "me" ? S.voicePartner : S.voiceMe); }
-    catch (e) { throw new UserError("الترجمة جاهزة بس الصوت ما اشتغل: " + (e instanceof UserError ? e.message : elevenErrorText(e))); }
-    entry.time("صوت", performance.now() - t2);
-    entry.state("بالدور…");
-    return { buffer, ear: earForTranslationOf(who) };
+    const t1 = performance.now();
+    const ear = earForTranslationOf(who);
+    try {
+      const { buffer } = await speakGemini(r.translation, target, who === "me" ? S.voicePartner : S.voiceMe);
+      entry.time("صوت", performance.now() - t1);
+      entry.state("بالدور…");
+      return { play: () => playBuffer(buffer, ear) };
+    } catch (e) {
+      return { play: () => phoneSpeak(r.translation, target), fallbackWhy: errText(e) };
+    }
   })();
   job.catch(() => {}); // errors are shown when the job reaches the playback queue
 
@@ -997,13 +962,16 @@ function handleUtterance({ wav, text }) {
   playChain = playChain.then(async () => {
     try {
       const r = await job;
-      if (r) {
-        entry.state("يشتغل…");
-        await playBuffer(r.buffer, r.ear);
-        entry.state("");
+      if (!r) return;
+      entry.state(r.fallbackWhy ? "صوت التلفون…" : "يشتغل…");
+      try {
+        await r.play();
+        entry.state(r.fallbackWhy ? `اشتغل صوت التلفون بالتكتين لأن صوت Google ما اشتغل: ${r.fallbackWhy}` : "");
+      } catch (e) {
+        entry.state(`الصوت ما اشتغل، اقرا الترجمة من الشاشة. ${r.fallbackWhy || ""} ${errText(e)}`.trim(), true);
       }
     } catch (e) {
-      entry.state(e?.message || String(e), true);
+      entry.state(errText(e), true);
     } finally {
       pending--; refreshStatus();
     }
@@ -1026,19 +994,19 @@ function stopAll() {
   const b = $("#micBtn");
   b.setAttribute("aria-pressed", "false");
   b.firstChild.textContent = "ابدأ";
-  b.querySelector("small").textContent = "اضغط وخلّي التلفون بالنص";
+  b.querySelector("small").textContent = "خلّي التلفون بينكم";
   meterDb = -90; drawMeter();
   refreshStatus();
+}
+function needKey() {
+  $("#settings").open = true;
+  setStatus("حط المفتاح المجاني", "error");
+  $("#geKey").focus();
 }
 $("#micBtn").addEventListener("click", async () => {
   if (running) { stopAll(); return; }
   audioCtx(); // must be created inside the tap
-  if (!S.elKey || !S.anKey) {
-    $("#settings").open = true;
-    setStatus("أدخل المفتاحين", "error");
-    (S.elKey ? $("#anKey") : $("#elKey")).focus();
-    return;
-  }
+  if (!S.geKey) return needKey();
   setStatus("يجهّز المايك…", "listen");
   try {
     await startMic();
@@ -1060,13 +1028,15 @@ $("#testTranslate").addEventListener("click", () => {
   audioCtx();
   const t = $("#testText").value.trim();
   if (!t) return;
+  if (!S.geKey) return needKey();
   handleUtterance({ text: t });
 });
 
 // ---------- Boot ----------
 syncInputs();
 renderEars();
-if (S.elKey) loadVoices();
+showModels();
+if (S.geKey) checkKey();
 </script>
 </body>
 </html>
