@@ -149,7 +149,13 @@ details.panel[open] > summary::after { content: "－"; }
 fieldset { border: 1px solid var(--line); border-radius: 12px; margin: 0; padding: 10px 12px 12px; display: grid; gap: 10px; min-width: 0; }
 legend { font-weight: 800; padding: 0 6px; }
 .field { display: grid; gap: 4px; min-width: 0; }
-.field > span { font-size: .9rem; font-weight: 600; }
+.field > span, .field > label { font-size: .9rem; font-weight: 600; }
+.key-row { display: flex; gap: 8px; }
+.key-row input { flex: 1; min-width: 0; }
+.field a { color: var(--me); font-weight: 600; }
+#elKeyNote:empty { display: none; }
+#elKeyNote.ok { color: var(--me); }
+#elKeyNote.bad { color: var(--danger); }
 .field > small, fieldset > small { color: var(--muted); font-size: .8rem; }
 .field input[type="range"] { width: 100%; accent-color: var(--me); }
 .check { display: flex; gap: 8px; align-items: flex-start; font-size: .9rem; }
@@ -233,16 +239,23 @@ textarea { width: 100%; resize: vertical; }
 
       <fieldset>
         <legend>المفاتيح</legend>
-        <label class="field">
-          <span>مفتاح ElevenLabs (للكلام والصوت)</span>
-          <input type="password" id="elKey" data-setting="elKey" class="ltr" autocomplete="off" spellcheck="false" placeholder="sk_...">
-          <small>من elevenlabs.io ← Developers ← API Keys.</small>
-        </label>
-        <label class="field">
-          <span>مفتاح Claude (للترجمة)</span>
-          <input type="password" id="anKey" data-setting="anKey" class="ltr" autocomplete="off" spellcheck="false" placeholder="sk-ant-...">
-          <small>من platform.claude.com ← API Keys.</small>
-        </label>
+        <div class="field">
+          <label for="elKey">1. مفتاح ElevenLabs (للكلام والصوت)</label>
+          <div class="key-row">
+            <input type="password" id="elKey" data-setting="elKey" class="ltr" autocomplete="off" spellcheck="false" placeholder="sk_...">
+            <button class="btn small" type="button" data-paste="elKey">الصق</button>
+          </div>
+          <small><a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener">افتح صفحة مفاتيح ElevenLabs</a>، سجّل دخول، اضغط Create Key، انسخ المفتاح، وارجع اضغط الصق.</small>
+          <small id="elKeyNote" aria-live="polite"></small>
+        </div>
+        <div class="field">
+          <label for="anKey">2. مفتاح Claude (للترجمة)</label>
+          <div class="key-row">
+            <input type="password" id="anKey" data-setting="anKey" class="ltr" autocomplete="off" spellcheck="false" placeholder="sk-ant-...">
+            <button class="btn small" type="button" data-paste="anKey">الصق</button>
+          </div>
+          <small>أول شي <a href="https://platform.claude.com/settings/billing" target="_blank" rel="noopener">اشحن رصيد</a> (Buy credits)، وبعدها <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">افتح صفحة المفاتيح</a>، اضغط Create Key، انسخ المفتاح، وارجع اضغط الصق.</small>
+        </div>
         <label class="check"><input type="checkbox" id="showKeys"> اعرض المفاتيح</label>
         <small>المفاتيح تنحفظ بس على هذا التلفون، وتنرسل مباشرة لـ ElevenLabs و Anthropic.</small>
       </fieldset>
@@ -401,6 +414,20 @@ for (const el of settingEls) {
     save();
     syncInputs();
     onSettingChanged(k);
+  });
+}
+for (const b of document.querySelectorAll("[data-paste]")) {
+  b.addEventListener("click", async () => {
+    const input = document.getElementById(b.dataset.paste);
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      if (!text) throw new Error("empty");
+      input.value = text;
+      input.dispatchEvent(new Event("change"));
+    } catch {
+      input.focus();
+      setStatus("اضغط مطوّلاً بالمربع واختار لصق", "error");
+    }
   });
 }
 $("#showKeys").addEventListener("change", (e) => {
@@ -798,16 +825,19 @@ async function synthesize(text, lang, voiceId) {
 
 async function loadVoices() {
   const note = $("#voiceNote");
-  if (!S.elKey) { note.textContent = ""; return; }
+  const keyNote = $("#elKeyNote");
+  const setKeyNote = (text, cls = "") => { keyNote.textContent = text; keyNote.className = cls; };
+  if (!S.elKey) { note.textContent = ""; setKeyNote(""); return; }
   note.textContent = "يحمّل…";
+  setKeyNote("يفحص المفتاح…");
   let voices = [];
   try {
     voices = (await (await elFetch("/v2/voices?page_size=100")).json()).voices || [];
   } catch {
     try { voices = (await (await elFetch("/v1/voices")).json()).voices || []; }
-    catch (e) { note.textContent = elevenErrorText(e); return; }
+    catch (e) { note.textContent = elevenErrorText(e); setKeyNote(elevenErrorText(e), "bad"); return; }
   }
-  if (!voices.length) { note.textContent = "ما لكيت أصوات بحسابك."; return; }
+  if (!voices.length) { note.textContent = "ما لكيت أصوات بحسابك."; setKeyNote("المفتاح شغال، بس ما لكيت أصوات بحسابك.", "bad"); return; }
   for (const id of ["#voiceMe", "#voicePartner"]) {
     const sel = $(id);
     sel.replaceChildren(...voices.map((v) => new Option(v.name || v.voice_id, v.voice_id)));
@@ -817,6 +847,7 @@ async function loadVoices() {
   if (!ids.includes(S.voicePartner)) S.voicePartner = ids[1] || ids[0];
   save(); syncInputs();
   note.textContent = `${voices.length} صوت`;
+  setKeyNote(`المفتاح شغال (${voices.length} صوت).`, "ok");
 }
 $("#reloadVoices").addEventListener("click", loadVoices);
 
