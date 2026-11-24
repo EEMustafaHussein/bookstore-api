@@ -1,0 +1,1041 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ترجمان</title>
+<meta name="theme-color" content="#0e7a6b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;800&display=swap">
+<style>
+/* Layout: one phone-width column. Two earbud tiles (L / R) on top, the mic in the middle, the conversation underneath. */
+:root {
+  --bg: #eef2f0;
+  --surface: #ffffff;
+  --surface-2: #f5f8f6;
+  --fg: #14201c;
+  --muted: #5b6b65;
+  --line: #d4ddd9;
+  --me: #0e7a6b;
+  --me-soft: #d8eee8;
+  --them: #b0591a;
+  --them-soft: #f6e3d2;
+  --danger: #b42318;
+  --danger-soft: #fde6e3;
+  --on-accent: #ffffff;
+  --font: "Noto Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 16px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1412; --surface: #16201d; --surface-2: #1c2825; --fg: #e5ede9; --muted: #98aaa3; --line: #2a3733;
+    --me: #4cc2ad; --me-soft: #15302a; --them: #e59a5a; --them-soft: #362618; --danger: #ff8a7a; --danger-soft: #3a1d19;
+    --on-accent: #08120f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1412; --surface: #16201d; --surface-2: #1c2825; --fg: #e5ede9; --muted: #98aaa3; --line: #2a3733;
+  --me: #4cc2ad; --me-soft: #15302a; --them: #e59a5a; --them-soft: #362618; --danger: #ff8a7a; --danger-soft: #3a1d19;
+  --on-accent: #08120f; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font);
+  font-size: 16px; line-height: 1.6; -webkit-text-size-adjust: 100%;
+}
+.wrap {
+  max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px;
+  padding-block: calc(env(safe-area-inset-top, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 40px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--me); outline-offset: 2px; }
+
+/* Header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand h1 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: 0; line-height: 1.2; }
+.brand p { margin: 0; color: var(--muted); font-size: .85rem; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line); font-size: .85rem; white-space: nowrap;
+}
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.pill[data-kind="listen"]::before { background: var(--me); }
+.pill[data-kind="rec"]::before { background: var(--them); animation: blink 1s infinite; }
+.pill[data-kind="error"] { color: var(--danger); border-color: var(--danger); }
+.pill[data-kind="error"]::before { background: var(--danger); }
+@keyframes blink { 50% { opacity: .25; } }
+
+/* Earbud tiles: always physical left on the left, whatever the text direction */
+.ears { direction: ltr; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ear {
+  direction: rtl; position: relative; padding: 12px 14px; border-radius: var(--radius);
+  background: var(--surface); border: 2px solid var(--line); min-width: 0;
+  transition: box-shadow .2s, border-color .2s;
+}
+.ear[data-who="me"] { border-color: var(--me); }
+.ear[data-who="them"] { border-color: var(--them); }
+.ear[data-who="both"] { border-style: dashed; }
+.ear .letter {
+  position: absolute; top: 8px; left: 12px; font-family: var(--mono); font-weight: 800; font-size: 1.6rem; line-height: 1;
+  color: var(--muted);
+}
+.ear[data-who="me"] .letter { color: var(--me); }
+.ear[data-who="them"] .letter { color: var(--them); }
+.ear .side { font-size: .8rem; color: var(--muted); }
+.ear .who { font-weight: 800; font-size: 1.05rem; }
+.ear .lang { font-size: .9rem; }
+.ear.playing[data-who="me"], .ear.playing[data-who="both"] { box-shadow: 0 0 0 5px var(--me-soft); }
+.ear.playing[data-who="them"] { box-shadow: 0 0 0 5px var(--them-soft); }
+
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.row label { color: var(--muted); font-size: .9rem; }
+select, input[type="text"], input[type="password"], textarea {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; max-width: 100%;
+}
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 14px; font-weight: 600;
+}
+.btn:active { transform: translateY(1px); }
+.btn.small { padding: 4px 10px; font-size: .85rem; }
+
+/* Mic */
+.stage { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-block: 6px; }
+.mic {
+  --level: 0;
+  width: 132px; height: 132px; border-radius: 50%; border: none; position: relative;
+  background: var(--me); color: var(--on-accent); font-weight: 800; font-size: 1.2rem;
+  box-shadow: 0 0 0 calc(4px + var(--level) * 22px) var(--me-soft);
+  transition: box-shadow .08s linear, background .2s;
+}
+.mic[aria-pressed="true"] { background: var(--them); box-shadow: 0 0 0 calc(4px + var(--level) * 22px) var(--them-soft); }
+.mic small { display: block; font-weight: 400; font-size: .8rem; opacity: .9; }
+.meter { direction: ltr; position: relative; width: min(320px, 100%); height: 8px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
+.meter i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--me); border-radius: 99px; }
+.meter b { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--fg); opacity: .55; left: 50%; }
+.hint { color: var(--muted); font-size: .85rem; text-align: center; margin: 0; }
+.warn { background: var(--danger-soft); color: var(--danger); border-radius: 12px; padding: 10px 12px; font-size: .9rem; margin: 0; }
+
+/* Conversation */
+.log { display: flex; flex-direction: column; gap: 10px; }
+.entry { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .8rem; }
+.chip { border-radius: 999px; padding: 1px 10px; font-weight: 600; background: var(--surface-2); color: var(--muted); }
+.entry[data-who="me"] .who { background: var(--me-soft); color: var(--me); }
+.entry[data-who="them"] .who { background: var(--them-soft); color: var(--them); }
+.entry .route { color: var(--muted); }
+.entry .state { color: var(--muted); }
+.entry .state.err { color: var(--danger); }
+.entry .orig { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+.entry .trans { margin: 0; font-size: 1.2rem; font-weight: 600; overflow-wrap: anywhere; }
+.entry .meta { font-family: var(--mono); font-size: .75rem; color: var(--muted); direction: ltr; text-align: left; font-variant-numeric: tabular-nums; }
+.entry.example { opacity: .8; border-style: dashed; }
+.empty-note { color: var(--muted); font-size: .85rem; margin: 0; }
+
+/* Settings */
+details.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+details.panel > summary { padding: 12px 14px; font-weight: 800; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.panel > summary::-webkit-details-marker { display: none; }
+details.panel > summary::after { content: "＋"; color: var(--muted); }
+details.panel[open] > summary::after { content: "－"; }
+.panel-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 14px; }
+fieldset { border: 1px solid var(--line); border-radius: 12px; margin: 0; padding: 10px 12px 12px; display: grid; gap: 10px; min-width: 0; }
+legend { font-weight: 800; padding: 0 6px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field > span { font-size: .9rem; font-weight: 600; }
+.field > small, fieldset > small { color: var(--muted); font-size: .8rem; }
+.field input[type="range"] { width: 100%; accent-color: var(--me); }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: .9rem; }
+.ltr { direction: ltr; text-align: left; }
+ol.steps { margin: 0; padding-inline-start: 1.3rem; color: var(--muted); font-size: .9rem; }
+ol.steps li + li { margin-top: 2px; }
+textarea { width: 100%; resize: vertical; }
+@media (prefers-reduced-motion: reduce) {
+  .pill[data-kind="rec"]::before { animation: none; }
+  .mic, .ear { transition: none; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>ترجمان</h1>
+      <p>عربي ⇄ کوردی · Türkçe · English</p>
+    </div>
+    <span class="pill" id="status" data-kind="idle" role="status" aria-live="polite">متوقف</span>
+  </header>
+
+  <section class="ears" aria-label="توزيع الصوت على التكتين">
+    <div class="ear" id="ear-left" data-who="me">
+      <span class="letter" aria-hidden="true">L</span>
+      <div class="side">التكة اليسرى</div>
+      <div class="who">إلك</div>
+      <div class="lang">تسمع: عربي</div>
+    </div>
+    <div class="ear" id="ear-right" data-who="them">
+      <span class="letter" aria-hidden="true">R</span>
+      <div class="side">التكة اليمنى</div>
+      <div class="who">للشخص المقابل</div>
+      <div class="lang">يسمع: کوردی</div>
+    </div>
+  </section>
+
+  <div class="row">
+    <label for="partnerLangMain">لغة الشخص المقابل:</label>
+    <select id="partnerLangMain" data-setting="partnerLang">
+      <option value="ckb">کوردی (سۆرانی)</option>
+      <option value="tr">Türkçe</option>
+      <option value="en">English</option>
+    </select>
+    <button class="btn small" id="swapEars" type="button">بدّل التكات</button>
+    <button class="btn small" id="testEars" type="button">جرّب التكات</button>
+  </div>
+
+  <section class="stage">
+    <button class="mic" id="micBtn" type="button" aria-pressed="false">ابدأ<small>اضغط وخلّي التلفون بالنص</small></button>
+    <div class="meter" aria-hidden="true"><i id="meterFill"></i><b id="meterThr"></b></div>
+    <p class="hint" id="micHint">بعد كل جملة اسكت لحظة حتى يترجمها.</p>
+    <p class="warn" id="micWarn" hidden></p>
+  </section>
+
+  <section aria-label="المحادثة">
+    <div class="log" id="log">
+      <article class="entry example" data-who="them">
+        <div class="entry-head"><span class="chip">مثال</span><span class="chip who">الشخص المقابل</span><span class="route">کوردی ← عربي · L</span></div>
+        <p class="orig" dir="auto">سڵاو، چۆنی؟ دەتوانیت یارمەتیم بدەیت؟</p>
+        <p class="trans" dir="auto">هلو، شلونك؟ تكدر تساعدني؟</p>
+      </article>
+      <article class="entry example" data-who="me">
+        <div class="entry-head"><span class="chip">مثال</span><span class="chip who">إنت</span><span class="route">عربي ← کوردی · R</span></div>
+        <p class="orig" dir="auto">أكيد، شنو تحتاج؟</p>
+        <p class="trans" dir="auto">بێگومان، چیت پێویستە؟</p>
+      </article>
+      <p class="empty-note" id="emptyNote">هذني أمثلة. أول ما تبدي تحجي، المحادثة الحقيقية تطلع هنا.</p>
+    </div>
+  </section>
+
+  <details class="panel" id="settings">
+    <summary>الإعدادات</summary>
+    <div class="panel-body">
+      <ol class="steps">
+        <li>حط التكة اليسرى (L) بإذنك، واليمنى (R) بإذن الشخص المقابل.</li>
+        <li>خلّي التلفون بينكم. التطبيق يسمع من مايك التلفون حتى يبقى صوت السماعة نقي.</li>
+        <li>احجي جملة واسكت لحظة. العربي يروح للشخص المقابل، ولغته تجي إلك بالعربي.</li>
+      </ol>
+
+      <fieldset>
+        <legend>المفاتيح</legend>
+        <label class="field">
+          <span>مفتاح ElevenLabs (للكلام والصوت)</span>
+          <input type="password" id="elKey" data-setting="elKey" class="ltr" autocomplete="off" spellcheck="false" placeholder="sk_...">
+          <small>من elevenlabs.io ← Developers ← API Keys.</small>
+        </label>
+        <label class="field">
+          <span>مفتاح Claude (للترجمة)</span>
+          <input type="password" id="anKey" data-setting="anKey" class="ltr" autocomplete="off" spellcheck="false" placeholder="sk-ant-...">
+          <small>من platform.claude.com ← API Keys.</small>
+        </label>
+        <label class="check"><input type="checkbox" id="showKeys"> اعرض المفاتيح</label>
+        <small>المفاتيح تنحفظ بس على هذا التلفون، وتنرسل مباشرة لـ ElevenLabs و Anthropic.</small>
+      </fieldset>
+
+      <fieldset>
+        <legend>الترجمة</legend>
+        <label class="field">
+          <span>نموذج الترجمة</span>
+          <select id="claudeModel" data-setting="claudeModel">
+            <option value="claude-opus-5-5">Claude Opus 5.5 (الأدق)</option>
+            <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (أسرع)</option>
+            <option value="claude-haiku-5-5">Claude Haiku 5.5 (الأسرع والأرخص)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>تكتك</span>
+          <select id="myEar" data-setting="myEar">
+            <option value="left">اليسرى (L)</option>
+            <option value="right">اليمنى (R)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>طريقة التشغيل</span>
+          <select id="outputMode" data-setting="outputMode">
+            <option value="split">كل واحد بتكة (يسار ويمين)</option>
+            <option value="both">كل الترجمات بالتكتين (للتجربة لوحدك)</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>الأصوات</legend>
+        <label class="field">
+          <span>الصوت اللي تسمعه إنت (عربي)</span>
+          <select id="voiceMe" data-setting="voiceMe"><option value="">أدخل مفتاح ElevenLabs أولاً</option></select>
+        </label>
+        <label class="field">
+          <span>الصوت اللي يسمعه الشخص المقابل</span>
+          <select id="voicePartner" data-setting="voicePartner"><option value="">أدخل مفتاح ElevenLabs أولاً</option></select>
+        </label>
+        <div class="row"><button class="btn small" id="reloadVoices" type="button">حدّث قائمة الأصوات</button><span class="hint" id="voiceNote"></span></div>
+        <label class="field">
+          <span>نموذج الصوت للعربي والتركي والإنكليزي</span>
+          <input type="text" class="ltr" data-setting="ttsFast" spellcheck="false">
+          <small>الافتراضي eleven_flash_v2_5 لأنه الأسرع.</small>
+        </label>
+        <label class="field">
+          <span>نموذج الصوت للكردي</span>
+          <input type="text" class="ltr" data-setting="ttsKurdish" spellcheck="false">
+          <small>إذا ما اشتغل، التطبيق يجرب eleven_v3 ثم eleven_multilingual_v2.</small>
+        </label>
+        <label class="field">
+          <span>نموذج تحويل الكلام لنص</span>
+          <input type="text" class="ltr" data-setting="sttModel" spellcheck="false">
+          <small>إذا ما اشتغل، التطبيق يجرب scribe_v2 ثم scribe_v1.</small>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>المايك</legend>
+        <label class="field">
+          <span>المايك</span>
+          <select id="micSelect" data-setting="micId"><option value="">الافتراضي</option></select>
+          <small>اختار مايك التلفون، مو مايك السماعة. القائمة تتعبى بعد أول تشغيل.</small>
+        </label>
+        <label class="field">
+          <span>الحساسية: <b id="sensVal"></b></span>
+          <input type="range" min="6" max="24" step="1" data-setting="sensitivity" id="sensitivity">
+          <small>رقم أقل = يلقط الصوت الواطي. رقم أعلى = يتجاهل الضوضاء.</small>
+        </label>
+        <label class="field">
+          <span>السكوت اللي ينهي الجملة: <b id="silVal"></b></span>
+          <input type="range" min="400" max="1600" step="50" data-setting="silenceMs" id="silenceMs">
+        </label>
+        <label class="check"><input type="checkbox" data-setting="micProcessing"> <span>تنقية صوت المايك. قد تحوّل السماعة لوضع المكالمة وتخرّب الصوت، فخليها مطفية إلا إذا احتجتها.</span></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>جرّب بدون مايك</legend>
+        <textarea id="testText" rows="2" dir="auto" placeholder="اكتب جملة بأي لغة من الأربعة"></textarea>
+        <div class="row"><button class="btn" id="testTranslate" type="button">ترجم وشغّل</button></div>
+      </fieldset>
+    </div>
+  </details>
+</main>
+
+<template id="entryTpl">
+  <article class="entry" data-who="">
+    <div class="entry-head"><span class="chip who"></span><span class="route"></span><span class="state"></span></div>
+    <p class="orig" dir="auto"></p>
+    <p class="trans" dir="auto"></p>
+    <div class="meta"></div>
+  </article>
+</template>
+
+<script type="module">
+// ---------- Config ----------
+const SDK_URL = "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.7.0/+esm";
+const EL_API = "https://api.elevenlabs.io";
+const FRAME_MS = 20;          // analysis frame
+const PRE_MS = 300;           // audio kept from before speech starts
+const START_FRAMES = 3;       // loud frames in a row that start a sentence
+const MIN_SPEECH_MS = 350;    // shorter bursts are ignored (coughs, clicks)
+const MAX_UTTERANCE_MS = 15000;
+const TAIL_KEEP_MS = 200;     // silence kept at the end of a sentence
+const CALIB_FRAMES = 25;      // first 0.5 s measures the room noise
+
+const LANGS = {
+  ar:  { label: "عربي", native: "عربي" },
+  ckb: { label: "كردي سوراني", native: "کوردی" },
+  tr:  { label: "تركي", native: "Türkçe" },
+  en:  { label: "إنكليزي", native: "English" },
+};
+
+const DEFAULTS = {
+  elKey: "", anKey: "", claudeModel: "claude-opus-5-5", myEar: "left", outputMode: "split", partnerLang: "ckb",
+  sttModel: "scribe_v3", ttsFast: "eleven_flash_v2_5", ttsKurdish: "eleven_v3", voiceMe: "", voicePartner: "",
+  sensitivity: 12, silenceMs: 700, micId: "", micProcessing: false,
+};
+const STORE_KEY = "turjuman.settings.v1";
+const S = (() => {
+  const s = { ...DEFAULTS };
+  try { const raw = localStorage.getItem(STORE_KEY); if (raw) Object.assign(s, JSON.parse(raw)); } catch {}
+  return s;
+})();
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch {} }
+
+const $ = (sel) => document.querySelector(sel);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const uniq = (arr) => [...new Set(arr.filter(Boolean))];
+const otherEar = (ear) => (ear === "left" ? "right" : "left");
+
+class UserError extends Error {}
+class ElevenError extends Error {
+  constructor(status, detail) { super(detail || `HTTP ${status}`); this.status = status; this.detail = detail || ""; }
+}
+
+// ---------- Settings binding ----------
+const settingEls = [...document.querySelectorAll("[data-setting]")];
+function syncInputs() {
+  for (const el of settingEls) {
+    const k = el.dataset.setting;
+    if (el.type === "checkbox") el.checked = !!S[k];
+    else if (el.tagName === "SELECT" && ![...el.options].some((o) => o.value === String(S[k]))) continue;
+    else el.value = S[k];
+  }
+  $("#sensVal").textContent = `${S.sensitivity} dB`;
+  $("#silVal").textContent = `${(S.silenceMs / 1000).toFixed(2)} ث`;
+}
+for (const el of settingEls) {
+  const k = el.dataset.setting;
+  const evt = el.type === "range" ? "input" : "change";
+  el.addEventListener(evt, () => {
+    S[k] = el.type === "checkbox" ? el.checked : el.type === "range" ? Number(el.value) : el.value.trim();
+    save();
+    syncInputs();
+    onSettingChanged(k);
+  });
+}
+$("#showKeys").addEventListener("change", (e) => {
+  for (const id of ["#elKey", "#anKey"]) $(id).type = e.target.checked ? "text" : "password";
+});
+
+function onSettingChanged(k) {
+  if (["myEar", "outputMode", "partnerLang"].includes(k)) renderEars();
+  if (k === "elKey") { sttWorking = null; for (const key in ttsWorking) delete ttsWorking[key]; loadVoices(); }
+  if (k === "sttModel") sttWorking = null;
+  if (k === "ttsFast" || k === "ttsKurdish") for (const key in ttsWorking) delete ttsWorking[key];
+  if ((k === "micId" || k === "micProcessing") && mic) restartMic();
+}
+
+// ---------- UI helpers ----------
+function setStatus(text, kind = "idle") { const p = $("#status"); p.textContent = text; p.dataset.kind = kind; }
+let pending = 0;
+function refreshStatus() {
+  if (!running) return pending > 0 ? setStatus(`يترجم (${pending})…`, "listen") : setStatus("متوقف");
+  if (vad.mode === "speech") return setStatus("يسجّل…", "rec");
+  if (pending > 0) return setStatus(`يترجم (${pending})…`, "listen");
+  setStatus(vad.mode === "calib" ? "يقيس الضوضاء…" : "يسمع…", "listen");
+}
+// The translation of what one person says is played in the OTHER person's ear.
+function earForTranslationOf(speaker) {
+  if (S.outputMode === "both") return "both";
+  return speaker === "me" ? otherEar(S.myEar) : S.myEar;
+}
+function renderEars() {
+  for (const ear of ["left", "right"]) {
+    const el = $(`#ear-${ear}`);
+    const who = S.outputMode === "both" ? "both" : ear === S.myEar ? "me" : "them";
+    el.dataset.who = who;
+    el.querySelector(".who").textContent = who === "both" ? "كل الترجمات" : who === "me" ? "إلك" : "للشخص المقابل";
+    el.querySelector(".lang").textContent =
+      who === "both" ? "عربي + " + LANGS[S.partnerLang].native
+      : who === "me" ? "تسمع: عربي" : "يسمع: " + LANGS[S.partnerLang].native;
+  }
+}
+function flashEar(ear, on) {
+  const ears = ear === "both" ? ["left", "right"] : [ear];
+  for (const e of ears) $(`#ear-${e}`).classList.toggle("playing", on);
+}
+function showMicWarn(text) { const w = $("#micWarn"); w.textContent = text || ""; w.hidden = !text; }
+
+// Conversation entries
+const logEl = $("#log");
+let examplesShown = true;
+function addEntry() {
+  if (examplesShown) {
+    logEl.querySelectorAll(".example, #emptyNote").forEach((n) => n.remove());
+    examplesShown = false;
+  }
+  const el = $("#entryTpl").content.firstElementChild.cloneNode(true);
+  logEl.prepend(el);
+  const q = (s) => el.querySelector(s);
+  const times = {};
+  return {
+    state(text, isErr = false) { const s = q(".state"); s.textContent = text; s.classList.toggle("err", isErr); },
+    original(text) { q(".orig").textContent = text; },
+    result(who, from, to, translation) {
+      el.dataset.who = who;
+      q(".who").textContent = who === "me" ? "إنت" : "الشخص المقابل";
+      const ear = earForTranslationOf(who);
+      q(".route").textContent = `${LANGS[from]?.native ?? from} ← ${LANGS[to]?.native ?? to} · ${ear === "both" ? "L+R" : ear === "left" ? "L" : "R"}`;
+      q(".trans").textContent = translation;
+    },
+    time(k, ms) {
+      times[k] = ms;
+      q(".meta").textContent = Object.entries(times).map(([n, v]) => `${n} ${(v / 1000).toFixed(1)}s`).join(" · ");
+    },
+    remove() { el.remove(); },
+  };
+}
+
+// ---------- Audio output ----------
+let ctx = null;
+function audioCtx() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+function panValue(ear) { return ear === "left" ? -1 : ear === "right" ? 1 : 0; }
+function playBuffer(buffer, ear) {
+  const c = audioCtx();
+  return new Promise((resolve) => {
+    const src = c.createBufferSource();
+    src.buffer = buffer;
+    const pan = c.createStereoPanner();
+    pan.pan.value = panValue(ear);
+    src.connect(pan).connect(c.destination);
+    flashEar(ear, true);
+    src.onended = () => { flashEar(ear, false); resolve(); };
+    src.start();
+  });
+}
+function beep(freq, ear) {
+  const c = audioCtx();
+  return new Promise((resolve) => {
+    const t = c.currentTime + 0.02;
+    const o = c.createOscillator(), g = c.createGain(), p = c.createStereoPanner();
+    o.frequency.value = freq;
+    p.pan.value = panValue(ear);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    o.connect(g).connect(p).connect(c.destination);
+    o.onended = resolve;
+    o.start(t); o.stop(t + 0.6);
+  });
+}
+$("#testEars").addEventListener("click", async () => {
+  for (const [ear, f] of [["left", 523], ["right", 784]]) {
+    flashEar(ear, true);
+    await beep(f, ear);
+    flashEar(ear, false);
+    await sleep(200);
+  }
+});
+$("#swapEars").addEventListener("click", () => {
+  S.myEar = otherEar(S.myEar); save(); syncInputs(); renderEars();
+});
+
+// ---------- Microphone capture + voice activity detection ----------
+const WORKLET_SRC = `
+class TurjumanCapture extends AudioWorkletProcessor {
+  constructor(options) {
+    super();
+    this.size = options.processorOptions.frame;
+    this.buf = new Float32Array(this.size);
+    this.n = 0;
+  }
+  process(inputs) {
+    const ch = inputs[0] && inputs[0][0];
+    if (ch) {
+      for (let i = 0; i < ch.length; i++) {
+        this.buf[this.n++] = ch[i];
+        if (this.n === this.size) { this.port.postMessage(this.buf.slice(0)); this.n = 0; }
+      }
+    }
+    return true;
+  }
+}
+registerProcessor("turjuman-capture", TurjumanCapture);
+`;
+let workletLoaded = false;
+let mic = null;
+let running = false;
+
+async function startMic() {
+  if (!navigator.mediaDevices?.getUserMedia) throw new UserError("هذا المتصفح ما يسمح بالمايك. افتح الصفحة بـ Chrome ومن رابط https.");
+  const c = audioCtx();
+  const audio = { echoCancellation: S.micProcessing, noiseSuppression: S.micProcessing, autoGainControl: S.micProcessing, channelCount: 1 };
+  if (S.micId) audio.deviceId = { exact: S.micId };
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio });
+  } catch (e) {
+    if (S.micId && (e.name === "OverconstrainedError" || e.name === "NotFoundError")) {
+      S.micId = ""; save(); delete audio.deviceId;
+      stream = await navigator.mediaDevices.getUserMedia({ audio });
+    } else throw e;
+  }
+  if (!workletLoaded) {
+    const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: "application/javascript" }));
+    await c.audioWorklet.addModule(url);
+    workletLoaded = true;
+  }
+  const src = c.createMediaStreamSource(stream);
+  const node = new AudioWorkletNode(c, "turjuman-capture", { processorOptions: { frame: Math.round(c.sampleRate * FRAME_MS / 1000) } });
+  const sink = c.createGain();
+  sink.gain.value = 0; // keeps the node running without sending the mic to the earbuds
+  src.connect(node).connect(sink).connect(c.destination);
+  node.port.onmessage = (ev) => vadFrame(ev.data);
+  mic = { stream, src, node, sink };
+  vadReset();
+  await listMics(stream);
+}
+function stopMic() {
+  if (!mic) return;
+  mic.node.port.onmessage = null;
+  try { mic.src.disconnect(); mic.node.disconnect(); mic.sink.disconnect(); } catch {}
+  mic.stream.getTracks().forEach((t) => t.stop());
+  mic = null;
+}
+async function restartMic() {
+  stopMic();
+  try { await startMic(); refreshStatus(); }
+  catch (e) { stopAll(); setStatus("خطأ بالمايك", "error"); showMicWarn(micErrorText(e)); }
+}
+async function listMics(stream) {
+  const sel = $("#micSelect");
+  try {
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "audioinput");
+    sel.replaceChildren(new Option("الافتراضي", ""));
+    devices.forEach((d, i) => { if (d.deviceId && d.deviceId !== "default") sel.add(new Option(d.label || `مايك ${i + 1}`, d.deviceId)); });
+    sel.value = S.micId;
+  } catch {}
+  const label = stream.getAudioTracks()[0]?.label || "";
+  if (/bluetooth|headset|hands-?free|sco|soundcore|anker|buds/i.test(label)) {
+    showMicWarn(`المايك الحالي من السماعة (${label}). هذا يحوّلها لوضع المكالمة والصوت يصير مكطّع وبالتكتين سوا. اختار مايك التلفون من الإعدادات ← المايك.`);
+  } else showMicWarn("");
+  $("#micHint").textContent = label ? `المايك: ${label}` : "بعد كل جملة اسكت لحظة حتى يترجمها.";
+}
+function micErrorText(e) {
+  if (e instanceof UserError) return e.message;
+  if (e?.name === "NotAllowedError") return "رفضت إذن المايك. اسمح بالمايك لهذا الموقع من إعدادات Chrome وجرب مرة ثانية.";
+  if (e?.name === "NotFoundError") return "ما لكيت مايك بالتلفون.";
+  if (e?.name === "NotReadableError") return "المايك مشغول بتطبيق ثاني. سكّر التطبيق الثاني وجرب.";
+  return `ما اشتغل المايك: ${e?.message || e}`;
+}
+
+const vad = { mode: "off" };
+function vadReset() {
+  Object.assign(vad, { mode: "calib", noise: -60, calib: [], pre: [], frames: [], run: 0, silence: 0, speech: 0 });
+}
+let meterDb = -90, meterThr = -60, meterQueued = false;
+function drawMeter() {
+  meterQueued = false;
+  const pct = (db) => clamp((db + 80) / 70, 0, 1);
+  $("#meterFill").style.width = `${pct(meterDb) * 100}%`;
+  $("#meterThr").style.left = `${pct(meterThr) * 100}%`;
+  $("#micBtn").style.setProperty("--level", running ? pct(meterDb).toFixed(3) : "0");
+}
+function vadFrame(f) {
+  let sum = 0;
+  for (let i = 0; i < f.length; i++) sum += f[i] * f[i];
+  const db = 10 * Math.log10(sum / f.length + 1e-12);
+  const thr = Math.max(vad.noise + S.sensitivity, -55);
+  meterDb = db; meterThr = thr;
+  if (!meterQueued) { meterQueued = true; requestAnimationFrame(drawMeter); }
+  const preMax = PRE_MS / FRAME_MS;
+
+  if (vad.mode === "calib") {
+    vad.calib.push(db);
+    if (vad.calib.length >= CALIB_FRAMES) {
+      const sorted = [...vad.calib].sort((a, b) => a - b);
+      vad.noise = clamp(sorted[Math.floor(sorted.length * 0.3)], -85, -25);
+      vad.mode = "idle";
+      refreshStatus();
+    }
+    return;
+  }
+  const loud = db > thr;
+  if (vad.mode === "idle") {
+    vad.pre.push(f);
+    if (vad.pre.length > preMax) vad.pre.shift();
+    if (loud) {
+      if (++vad.run >= START_FRAMES) {
+        Object.assign(vad, { mode: "speech", frames: vad.pre, pre: [], speech: vad.run, silence: 0, run: 0 });
+        refreshStatus();
+      }
+    } else {
+      vad.run = 0;
+      vad.noise = clamp(vad.noise + (db < vad.noise ? 0.15 : 0.02) * (db - vad.noise), -85, -25);
+    }
+    return;
+  }
+  // speaking
+  vad.frames.push(f);
+  if (loud) { vad.speech++; vad.silence = 0; } else vad.silence++;
+  vad.noise = clamp(vad.noise + 0.0015 * (db - vad.noise), -85, -25); // follows slowly rising background noise
+  if (vad.silence * FRAME_MS >= S.silenceMs || vad.frames.length * FRAME_MS >= MAX_UTTERANCE_MS) endUtterance();
+}
+function endUtterance() {
+  const { frames, speech, silence } = vad;
+  Object.assign(vad, { mode: "idle", frames: [], pre: [], run: 0, silence: 0, speech: 0 });
+  refreshStatus();
+  if (speech * FRAME_MS < MIN_SPEECH_MS) return;
+  const drop = Math.max(0, silence - TAIL_KEEP_MS / FRAME_MS);
+  const kept = frames.slice(0, frames.length - drop);
+  const total = kept.reduce((n, a) => n + a.length, 0);
+  const pcm = new Float32Array(total);
+  let o = 0;
+  for (const a of kept) { pcm.set(a, o); o += a.length; }
+  const wav = encodeWav(normalize(resample(pcm, ctx.sampleRate, 16000)), 16000);
+  handleUtterance({ wav });
+}
+
+// ---------- PCM helpers ----------
+function resample(input, from, to) {
+  if (from === to) return input;
+  const ratio = from / to;
+  const n = Math.floor(input.length / ratio);
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = Math.floor(i * ratio), b = Math.min(input.length, Math.floor((i + 1) * ratio));
+    let s = 0;
+    for (let j = a; j < b; j++) s += input[j];
+    out[i] = s / Math.max(1, b - a);
+  }
+  return out;
+}
+function normalize(x) {
+  let peak = 0;
+  for (let i = 0; i < x.length; i++) peak = Math.max(peak, Math.abs(x[i]));
+  if (peak < 1e-4) return x;
+  const g = Math.min(0.9 / peak, 8);
+  for (let i = 0; i < x.length; i++) x[i] *= g;
+  return x;
+}
+function encodeWav(samples, rate) {
+  const buf = new ArrayBuffer(44 + samples.length * 2);
+  const v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + samples.length * 2, true); w(8, "WAVE");
+  w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, "data"); v.setUint32(40, samples.length * 2, true);
+  let o = 44;
+  for (let i = 0; i < samples.length; i++, o += 2) {
+    const s = clamp(samples[i], -1, 1);
+    v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  return new Blob([buf], { type: "audio/wav" });
+}
+
+// ---------- ElevenLabs: speech-to-text, text-to-speech, voices ----------
+async function elFetch(path, opts = {}) {
+  if (!S.elKey) throw new UserError("أدخل مفتاح ElevenLabs بالإعدادات.");
+  let res;
+  try {
+    res = await fetch(EL_API + path, { ...opts, headers: { "xi-api-key": S.elKey, ...(opts.headers || {}) } });
+  } catch {
+    throw new UserError("ما كدرت أوصل لـ ElevenLabs. تأكد من الإنترنت.");
+  }
+  if (!res.ok) {
+    let detail = "";
+    try {
+      const j = await res.json();
+      const d = j?.detail ?? j;
+      detail = typeof d === "string" ? d : d?.message || d?.status || JSON.stringify(d);
+    } catch {}
+    throw new ElevenError(res.status, detail);
+  }
+  return res;
+}
+function elevenErrorText(e) {
+  if (!(e instanceof ElevenError)) return e?.message || String(e);
+  if (e.status === 401) return "مفتاح ElevenLabs غلط أو ما عنده صلاحية لهذي الخدمة.";
+  if (e.status === 402 || /quota|credits/i.test(e.detail)) return "خلص رصيد ElevenLabs.";
+  if (e.status === 429) return "ElevenLabs مضغوط أو وصلت الحد. انتظر شوية.";
+  return `خطأ من ElevenLabs (${e.status}): ${e.detail}`;
+}
+const isModelProblem = (e) => e instanceof ElevenError && [400, 404, 422].includes(e.status) && /model|language|unsupported|not support/i.test(e.detail);
+
+let sttWorking = null;
+async function transcribe(wav) {
+  const models = sttWorking ? [sttWorking] : uniq([S.sttModel, "scribe_v2", "scribe_v1"]);
+  let lastErr;
+  for (const model of models) {
+    const fd = new FormData();
+    fd.append("file", wav, "speech.wav");
+    fd.append("model_id", model);
+    fd.append("tag_audio_events", "false");
+    try {
+      const res = await elFetch("/v1/speech-to-text", { method: "POST", body: fd });
+      const j = await res.json();
+      sttWorking = model;
+      return { text: (j.text || "").trim(), lang: j.language_code || null, prob: j.language_probability ?? null };
+    } catch (e) {
+      lastErr = e;
+      if (!isModelProblem(e)) throw e;
+    }
+  }
+  throw lastErr;
+}
+
+const ttsWorking = {};
+async function synthesize(text, lang, voiceId) {
+  if (!voiceId) throw new UserError("اختار صوت من الإعدادات ← الأصوات.");
+  const group = lang === "ckb" ? "ckb" : "other";
+  const chain = ttsWorking[group] ? [ttsWorking[group]]
+    : group === "ckb" ? uniq([S.ttsKurdish, "eleven_v3", "eleven_multilingual_v2"])
+    : uniq([S.ttsFast, "eleven_flash_v2_5", "eleven_multilingual_v2"]);
+  let lastErr;
+  for (const model of chain) {
+    try {
+      const res = await elFetch(`/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "audio/mpeg" },
+        body: JSON.stringify({ text, model_id: model }),
+      });
+      const data = await res.arrayBuffer();
+      const buffer = await audioCtx().decodeAudioData(data);
+      ttsWorking[group] = model;
+      return buffer;
+    } catch (e) {
+      lastErr = e;
+      if (!isModelProblem(e)) throw e;
+    }
+  }
+  throw lastErr;
+}
+
+async function loadVoices() {
+  const note = $("#voiceNote");
+  if (!S.elKey) { note.textContent = ""; return; }
+  note.textContent = "يحمّل…";
+  let voices = [];
+  try {
+    voices = (await (await elFetch("/v2/voices?page_size=100")).json()).voices || [];
+  } catch {
+    try { voices = (await (await elFetch("/v1/voices")).json()).voices || []; }
+    catch (e) { note.textContent = elevenErrorText(e); return; }
+  }
+  if (!voices.length) { note.textContent = "ما لكيت أصوات بحسابك."; return; }
+  for (const id of ["#voiceMe", "#voicePartner"]) {
+    const sel = $(id);
+    sel.replaceChildren(...voices.map((v) => new Option(v.name || v.voice_id, v.voice_id)));
+  }
+  const ids = voices.map((v) => v.voice_id);
+  if (!ids.includes(S.voiceMe)) S.voiceMe = ids[0];
+  if (!ids.includes(S.voicePartner)) S.voicePartner = ids[1] || ids[0];
+  save(); syncInputs();
+  note.textContent = `${voices.length} صوت`;
+}
+$("#reloadVoices").addEventListener("click", loadVoices);
+
+// ---------- Claude: language check + translation ----------
+let sdk = null, claude = null, claudeKey = "";
+async function getClaude() {
+  if (!S.anKey) throw new UserError("أدخل مفتاح Claude بالإعدادات.");
+  if (!sdk) {
+    try { sdk = await import(SDK_URL); }
+    catch { throw new UserError("ما كدرت أحمّل مكتبة Claude. تأكد من الإنترنت."); }
+  }
+  if (!claude || claudeKey !== S.anKey) {
+    const Anthropic = sdk.default ?? sdk.Anthropic;
+    claude = new Anthropic({ apiKey: S.anKey, dangerouslyAllowBrowser: true, maxRetries: 1 });
+    claudeKey = S.anKey;
+  }
+  return claude;
+}
+function claudeErrorText(e) {
+  const A = sdk?.default ?? sdk?.Anthropic;
+  if (A) {
+    if (e instanceof A.AuthenticationError) return "مفتاح Claude غلط. صحّحه بالإعدادات.";
+    if (e instanceof A.PermissionDeniedError) return "مفتاح Claude ما عنده صلاحية لهذا النموذج.";
+    if (e instanceof A.NotFoundError) return "النموذج غير متاح لحسابك. اختار نموذج ثاني بالإعدادات.";
+    if (e instanceof A.RateLimitError) return "وصلت حد الاستخدام أو خلص الرصيد بحساب Claude.";
+    if (e instanceof A.APIConnectionError) return "ما كدرت أوصل لـ Claude. تأكد من الإنترنت.";
+    if (e instanceof A.APIError) return `خطأ من Claude (${e.status ?? "?"}): ${e.message}`;
+  }
+  return e?.message || String(e);
+}
+
+const SYSTEM_PROMPT = `You are the interpreter inside an earbud translation app used in Iraq.
+The phone's owner speaks Arabic, usually Iraqi dialect. The other person speaks Central Kurdish (Sorani), Turkish or English.
+
+You receive the speech-recognition transcript of ONE spoken utterance, the recognizer's language guess, the other person's current language, and a few recent turns for context.
+
+1. Decide the utterance language: "ar", "ckb", "tr" or "en". The recognizer's guess can be wrong: Sorani is sometimes labelled Arabic or Persian. Sorani is written in Arabic script with letters such as ڕ ڵ ێ ۆ ە and words such as ئەوە، چۆنی، باشم، دەتوانم، نازانم. Any Persian-looking text counts as "ckb".
+2. Translate it:
+   - If the language is "ar", translate into the other person's current language (given as partner_language).
+   - Otherwise translate into simple, natural spoken Arabic that an Iraqi understands at once.
+3. Write Sorani in the Kurdish Arabic-script alphabet and Turkish in Latin script.
+
+The transcript comes from speech recognition, so fix obvious recognition errors and translate the most likely meaning. Keep names, numbers and the speaker's tone. The translation will be spoken aloud: keep it short and conversational, with no notes, quotes or explanations. If the transcript is only noise or filler, return an empty translation.`;
+
+const SCHEMA = {
+  type: "object",
+  properties: {
+    language: { type: "string", enum: ["ar", "ckb", "tr", "en"] },
+    translation: { type: "string" },
+  },
+  required: ["language", "translation"],
+  additionalProperties: false,
+};
+
+const history = []; // last few turns, for context
+function normLang(code) {
+  if (!code) return null;
+  const c = String(code).toLowerCase();
+  if (["ar", "ara", "arb", "acm", "apc", "arz", "ayp", "afb"].includes(c) || c.startsWith("ar-")) return "ar";
+  if (["ckb", "ku", "kur", "kmr", "sdh"].includes(c)) return "ckb";
+  if (["tr", "tur"].includes(c)) return "tr";
+  if (["en", "eng"].includes(c)) return "en";
+  return c;
+}
+async function translate(transcript, sttLang) {
+  const client = await getClaude();
+  const params = {
+    model: S.claudeModel,
+    max_tokens: 16000,
+    system: SYSTEM_PROMPT,
+    output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
+    messages: [{
+      role: "user",
+      content: JSON.stringify({
+        transcript,
+        recognizer_language: sttLang,
+        partner_language: S.partnerLang,
+        recent_turns: history.slice(-4),
+      }),
+    }],
+  };
+  const A = sdk.default ?? sdk.Anthropic;
+  let res;
+  if (S.claudeModel === "claude-haiku-5-5") {
+    res = await client.messages.create(params);
+  } else {
+    try {
+      // Server-side refusal fallback: if this model declines, the API retries on a fallback model in the same call.
+      res = await client.beta.messages.create({ ...params, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" });
+    } catch (e) {
+      if (e instanceof A.BadRequestError && /fallback/i.test(e.message)) res = await client.messages.create(params);
+      else throw e;
+    }
+  }
+  if (res.stop_reason === "refusal") throw new UserError("النموذج رفض يترجم هذي الجملة.");
+  const block = res.content.find((b) => b.type === "text");
+  if (!block) throw new UserError("ما رجعت ترجمة من Claude.");
+  const out = JSON.parse(block.text);
+  return { language: out.language, translation: (out.translation || "").trim() };
+}
+
+// ---------- Pipeline ----------
+let playChain = Promise.resolve();
+function handleUtterance({ wav, text }) {
+  const entry = addEntry();
+  pending++; refreshStatus();
+  const job = (async () => {
+    let transcript = text, sttLang = null;
+    if (wav) {
+      entry.state("يحوّل الكلام لنص…");
+      const t0 = performance.now();
+      try {
+        const r = await transcribe(wav);
+        transcript = r.text; sttLang = normLang(r.lang);
+      } catch (e) { throw new UserError(elevenErrorText(e)); }
+      entry.time("نص", performance.now() - t0);
+      if (!transcript) { entry.remove(); return null; }
+    }
+    entry.original(transcript);
+    entry.state("يترجم…");
+    const t1 = performance.now();
+    let tr;
+    try { tr = await translate(transcript, sttLang); }
+    catch (e) { throw new UserError(e instanceof UserError ? e.message : claudeErrorText(e)); }
+    entry.time("ترجمة", performance.now() - t1);
+    if (!tr.translation) { entry.remove(); return null; }
+
+    const who = tr.language === "ar" ? "me" : "them";
+    if (who === "them" && tr.language !== S.partnerLang) { S.partnerLang = tr.language; save(); syncInputs(); renderEars(); }
+    const target = who === "me" ? S.partnerLang : "ar";
+    entry.result(who, tr.language, target, tr.translation);
+    history.push({ speaker: who === "me" ? "owner" : "partner", text: transcript, translation: tr.translation });
+    if (history.length > 8) history.shift();
+
+    entry.state("يجهّز الصوت…");
+    const t2 = performance.now();
+    let buffer;
+    try { buffer = await synthesize(tr.translation, target, who === "me" ? S.voicePartner : S.voiceMe); }
+    catch (e) { throw new UserError("الترجمة جاهزة بس الصوت ما اشتغل: " + (e instanceof UserError ? e.message : elevenErrorText(e))); }
+    entry.time("صوت", performance.now() - t2);
+    entry.state("بالدور…");
+    return { buffer, ear: earForTranslationOf(who) };
+  })();
+  job.catch(() => {}); // errors are shown when the job reaches the playback queue
+
+  // Playback keeps the order people spoke in, even when a later sentence finishes first.
+  playChain = playChain.then(async () => {
+    try {
+      const r = await job;
+      if (r) {
+        entry.state("يشتغل…");
+        await playBuffer(r.buffer, r.ear);
+        entry.state("");
+      }
+    } catch (e) {
+      entry.state(e?.message || String(e), true);
+    } finally {
+      pending--; refreshStatus();
+    }
+  });
+}
+
+// ---------- Start / stop ----------
+let wakeLock = null;
+async function keepAwake() {
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
+}
+document.addEventListener("visibilitychange", () => { if (running && document.visibilityState === "visible") keepAwake(); });
+
+function stopAll() {
+  running = false;
+  stopMic();
+  vad.mode = "off";
+  try { wakeLock?.release(); } catch {}
+  wakeLock = null;
+  const b = $("#micBtn");
+  b.setAttribute("aria-pressed", "false");
+  b.firstChild.textContent = "ابدأ";
+  b.querySelector("small").textContent = "اضغط وخلّي التلفون بالنص";
+  meterDb = -90; drawMeter();
+  refreshStatus();
+}
+$("#micBtn").addEventListener("click", async () => {
+  if (running) { stopAll(); return; }
+  audioCtx(); // must be created inside the tap
+  if (!S.elKey || !S.anKey) {
+    $("#settings").open = true;
+    setStatus("أدخل المفتاحين", "error");
+    (S.elKey ? $("#anKey") : $("#elKey")).focus();
+    return;
+  }
+  setStatus("يجهّز المايك…", "listen");
+  try {
+    await startMic();
+  } catch (e) {
+    setStatus("خطأ بالمايك", "error");
+    showMicWarn(micErrorText(e));
+    return;
+  }
+  running = true;
+  const b = $("#micBtn");
+  b.setAttribute("aria-pressed", "true");
+  b.firstChild.textContent = "إيقاف";
+  b.querySelector("small").textContent = "يسمع الطرفين";
+  keepAwake();
+  refreshStatus();
+});
+
+$("#testTranslate").addEventListener("click", () => {
+  audioCtx();
+  const t = $("#testText").value.trim();
+  if (!t) return;
+  handleUtterance({ text: t });
+});
+
+// ---------- Boot ----------
+syncInputs();
+renderEars();
+if (S.elKey) loadVoices();
+</script>
+</body>
+</html>
