@@ -13,6 +13,7 @@ const DDL = [
   'CREATE TABLE IF NOT EXISTS features (id serial PRIMARY KEY, kind text NOT NULL, lat double precision NOT NULL, lon double precision NOT NULL, r_m double precision NOT NULL)',
   "CREATE TABLE IF NOT EXISTS works (id text PRIMARY KEY, zone_id int NOT NULL, title text NOT NULL, crew jsonb NOT NULL DEFAULT '[]', permit text, ptw text, shift text, status text NOT NULL, sup text, day date, updated_at timestamptz NOT NULL DEFAULT now())",
   'CREATE TABLE IF NOT EXISTS blobs (k text PRIMARY KEY, mime text NOT NULL, data bytea NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS pois (id serial PRIMARY KEY, label text NOT NULL, zone_id int, lat double precision NOT NULL, lon double precision NOT NULL)',
   "INSERT INTO meta (k, v) VALUES ('version', 1) ON CONFLICT (k) DO NOTHING"
 ];
 const ZONE_COLS = 'id, name, short, kind, hz, temp, is_new, poly, entry';
@@ -22,13 +23,14 @@ module.exports = {
   async init() { for (const s of DDL) await q(s); },
   async version() { return Number((await q("SELECT v FROM meta WHERE k = 'version'"))[0].v); },
   async site() {
-    const [cfg, zones, roads, features] = await Promise.all([
+    const [cfg, zones, roads, features, pois] = await Promise.all([
       q("SELECT v FROM config WHERE k = 'map'"),
       q(`SELECT ${ZONE_COLS} FROM zones ORDER BY id`),
       q('SELECT name, pts FROM roads ORDER BY id'),
-      q('SELECT kind, lat, lon, r_m FROM features ORDER BY id')
+      q('SELECT kind, lat, lon, r_m FROM features ORDER BY id'),
+      q('SELECT id, label, zone_id, lat, lon FROM pois ORDER BY id')
     ]);
-    return {config: cfg[0] ? cfg[0].v : null, zones, roads, features, version: await this.version()};
+    return {config: cfg[0] ? cfg[0].v : null, zones, roads, features, pois, version: await this.version()};
   },
   async works() { return q(`SELECT ${WORK_COLS} FROM works ORDER BY updated_at DESC`); },
   async blob(k) { return (await q('SELECT mime, data FROM blobs WHERE k = $1', [k]))[0] || null; },

@@ -97,8 +97,22 @@
   }
 
   /* ---------- site data ---------- */
-  let ZONES = [], ZM = {}, ROADS = [], FEATS = [], CONFIG = null;
-  const zoneAt = p => ZONES.find(z => pip(p, z.poly)) || null;
+  let ZONES = [], ZM = {}, ROADS = [], FEATS = [], POIS = [], BY_AREA = [], CONFIG = null;
+  const zoneAt = p => BY_AREA.find(z => pip(p, z.poly)) || null;   // smallest zone wins where zones overlap
+  const polyArea = poly => Math.abs(poly.reduce((a, p, i) => { const q = poly[(i + 1) % poly.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
+  const circlePoly = (cx, cy, r, n = 16) => Array.from({length: n}, (_, i) => [cx + r * Math.cos(i * 2 * Math.PI / n), cy + r * Math.sin(i * 2 * Math.PI / n)]);
+  // search: ignore case, spaces, dashes and dots; read Arabic-Indic digits as Latin
+  const norm = s => String(s || '').toLowerCase()
+    .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x6F0))
+    .replace(/[\s\-_.·/]/g, '');
+  function nearestPoi(p, max) { let best = null, d = max; POIS.forEach(o => { const dd = Math.hypot(o.x - p.x, o.y - p.y); if (dd < d) { d = dd; best = o; } }); return best; }
+  function poiDest(o) {
+    if (o.dest) return o.dest;
+    const z = ZM[o.zone_id], dr = ROADS.length ? nearestOnRoads({x: o.x, y: o.y}) : null;
+    o.dest = {id: 'p' + o.id, isPoi: true, poi: o, zone: z || null, name: o.label + (z ? ` · ${z.short}` : ''), short: o.label, kind: z ? z.kind : '', hz: z ? z.hz : null,
+      in: [o.x, o.y], doorRef: dr, door: dr ? [dr.x, dr.y] : [o.x, o.y], poly: circlePoly(o.x, o.y, 30)};
+    return o.dest;
+  }
   function nearestZone(p) { let best = null, d = Infinity; ZONES.forEach(z => { const dd = polyDist(p, z.poly); if (dd < d) { d = dd; best = z; } }); return {zone: best, d}; }
   function nearestOnRoads(p) {
     let best = null;
@@ -133,7 +147,9 @@
       return z;
     });
     ZM = Object.fromEntries(ZONES.map(z => [z.id, z]));
+    BY_AREA = [...ZONES].sort((a, b) => polyArea(a.poly) - polyArea(b.poly));
     FEATS = (site.features || []).map(f => { const m = GEO.toMap(f.lat, f.lon); return {x: m.x, y: m.y, r: f.r_m}; });
+    POIS = (site.pois || []).map(o => { const m = GEO.toMap(o.lat, o.lon); return {id: o.id, label: o.label, zone_id: o.zone_id, x: m.x, y: m.y, key: norm(o.label)}; });
     state.version = site.version;
   }
 
@@ -210,12 +226,12 @@
   function computeRoute(from, dz) {
     if (!from || !ROADS.length) return null;
     const here = zoneAt(from);
-    if (here && here.id === dz.id) return {error: 'here'};
+    if ((here && here.id === dz.id) || (dz.isPoi && pip(from, dz.poly))) return {error: 'here'};
     if (!pip(from, SITE)) return {error: 'outside'};
     const lead = []; let entry;
     if (here && here.doorRef) { entry = here.doorRef; lead.push({x: from.x, y: from.y, r: null}); }
     else { entry = nearestOnRoads(from); if (entry.d > 12) lead.push({x: from.x, y: from.y, r: null}); }
-    const g = buildGraph([entry]);
+    const g = buildGraph(dz.isPoi && dz.doorRef ? [entry, dz.doorRef] : [entry]);
     const path = dijkstra(g, g.key(entry.x, entry.y), g.key(dz.door[0], dz.door[1]));
     if (!path) return null;
     const core = path.map((n, i) => { let r = null; if (i < path.length - 1) { const e = n.adj.find(e => e.k === path[i+1].k); r = e ? e.ri : null; } return {x: n.x, y: n.y, r}; });
@@ -241,7 +257,7 @@
   /* ---------- state ---------- */
   const state = {role: null, version: 0, pos: null, hereId: null, selectedId: null, follow: true, sim: false, tab: 'site', filter: 'all', q: '',
     works: [], view: {x: 0, y: 0, w: 1000, h: 1000}, ppu: 1, rot: 0, heading: 0, headingUp: true, nav: null,
-    formOpen: false, zoneForm: null, delArm: null, zoneDelArm: false, draw: null, layer26: false, userMoved: false, busy: false};
+    formOpen: false, zoneForm: null, focusPoi: null, plan: true, delArm: null, zoneDelArm: false, draw: null, layer26: false, userMoved: false, busy: false};
   const isSup = () => state.role === 'sup';
   const countsFor = zid => { const ws = state.works.filter(w => w.zone_id === zid && w.status !== 'done'); const active = ws.filter(w => w.status === 'active').length; return {active, planned: ws.length - active, total: ws.length}; };
   const byStatus = (a, b) => (ORDER[a.status] - ORDER[b.status]) || String(a.day).localeCompare(String(b.day));
@@ -267,10 +283,13 @@
       <g id="world"><rect class="ground" x="-20000" y="-20000" width="50000" height="50000"/>
       <g id="tilesBase"></g><g id="tiles"></g>
       <image id="layer26" href="/api/layer/2026" x="0" y="0" width="${MAP_W.toFixed(2)}" height="${MAP_H.toFixed(2)}" preserveAspectRatio="none" style="display:none"/>
+      <image id="layerPlan" href="/api/layer/plan" x="0" y="0" width="${MAP_W.toFixed(2)}" height="${MAP_H.toFixed(2)}" preserveAspectRatio="none"/>
       <g id="dyn"></g>
+      <g id="pois"></g>
       <g id="routeG"><polyline id="rCase" class="r-case" points=""/><polyline id="rLine" class="r-line" points=""/></g>
       <g id="draft"></g>
       <g id="labels"></g>
+      <g id="focusMark" style="display:none"><circle class="fm-ring" r="22"/><text class="fm-txt" y="-34"></text></g>
       <g id="destPin" style="display:none"><path class="pin-b" d="M0 0C-4-7-13-14-13-23a13 13 0 0 1 26 0C13-14 4-7 0 0z"/><circle class="pin-c" cy="-23" r="5"/></g>
       <g id="you" style="display:none"><circle id="acc" class="acc" r="5"/><g id="youDot"><circle class="pulse" r="9"/><circle class="dot" r="7.5"/><path class="arrow" d="M0-15 11 11 0 5-11 11z"/></g></g></g>`;
     // a coarse imagery layer that always covers the site while sharper tiles load
@@ -282,6 +301,8 @@
     s += `<g id="zones">` + ZONES.map(z => `<g class="zone${z.isNew ? ' isnew' : ''}" data-id="${z.id}">${z.isNew ? `<polygon class="zh" points="${pstr(z.poly)}"/>` : ''}<polygon class="zp" points="${pstr(z.poly)}"/></g>`).join('') + `</g>`;
     s += FEATS.map(f => `<circle class="newf" cx="${f.x.toFixed(1)}" cy="${f.y.toFixed(1)}" r="${f.r.toFixed(1)}"/>`).join('');
     $('#dyn').innerHTML = s;
+    $('#pois').innerHTML = POIS.map(o => `<g class="poi" data-pid="${o.id}"><circle class="pd" r="3.5"/><text class="pt" y="-11">${esc(o.label)}</text></g>`).join('');
+    POIS.forEach(o => { o.el = svg.querySelector(`.poi[data-pid="${o.id}"]`); });
     $('#labels').innerHTML = ZONES.map(z => `<g class="lbl" data-id="${z.id}"><circle class="b" r="12"/><text class="bt">${z.id}</text><path class="hzm" d="M-28 8 L-20 -6 L-12 8 Z"/><g class="cnt"></g><text class="nm" y="28">${esc(z.short)}</text></g>`).join('');
     ZONES.forEach(z => { z.el = svg.querySelector(`.zone[data-id="${z.id}"]`); z.lblEl = svg.querySelector(`.lbl[data-id="${z.id}"]`); });
   }
@@ -339,9 +360,11 @@
     state.ppu = r.width / v.w;
     const k = (1 / state.ppu).toFixed(4), rr = state.rot.toFixed(2);
     ZONES.forEach(z => z.lblEl && z.lblEl.setAttribute('transform', `translate(${z.lx.toFixed(1)} ${z.ly.toFixed(1)}) rotate(${rr}) scale(${k})`));
+    POIS.forEach(o => o.el && o.el.setAttribute('transform', `translate(${o.x.toFixed(1)} ${o.y.toFixed(1)}) rotate(${rr}) scale(${k})`));
     svg.classList.toggle('show-names', state.ppu >= NAMES_AT);
+    svg.classList.toggle('show-pois', state.ppu >= 1.3);
     $('#northIco').style.transform = `rotate(${-state.rot}deg)`;
-    updateYou(); updatePin(); renderScale(); renderDraft(); scheduleTiles();
+    updateYou(); updatePin(); updateFocus(); renderScale(); renderDraft(); scheduleTiles();
   }
   function zoomTo(w, mapPt, clientPt) {
     const r = rect(); w = clamp(w, 120, 6000);
@@ -415,6 +438,19 @@
     if (!n) { pin.style.display = 'none'; return; }
     pin.style.display = '';
     pin.setAttribute('transform', `translate(${n.dest.in[0].toFixed(1)} ${n.dest.in[1].toFixed(1)}) rotate(${state.rot.toFixed(2)}) scale(${(1/state.ppu).toFixed(4)})`);
+  }
+  function updateFocus() {
+    const f = state.focusPoi, g = $('#focusMark'); if (!g) return;
+    if (!f || state.nav) { g.style.display = 'none'; return; }
+    g.style.display = '';
+    g.querySelector('text').textContent = f.label;
+    g.setAttribute('transform', `translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${state.rot.toFixed(2)}) scale(${(1/state.ppu).toFixed(4)})`);
+  }
+  function focusPoi(o) {
+    state.focusPoi = o;
+    if (o.zone_id && ZM[o.zone_id]) { state.selectedId = o.zone_id; state.follow = false; state.tab = 'site'; renderZones(); renderPanel(); }
+    centerOn(o.x, o.y, Math.min(state.view.w, rect().width / 2));
+    toast(`هذا مكان ${o.label}`);
   }
   function setGeo(lat, lon, acc, src, o = {}) {
     const m = GEO.toMap(lat, lon), prevPos = state.pos, first = !prevPos;
@@ -521,6 +557,7 @@
   async function keepAwake(on) {
     try { if (on && 'wakeLock' in navigator && !wakeLock) wakeLock = await navigator.wakeLock.request('screen'); else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; } } catch (e) { wakeLock = null; }
   }
+  const destZone = d => d.isPoi ? (d.zone ? d.zone.id : null) : d.id;
   function setBodyNav() {
     const n = state.nav, b = document.body;
     b.classList.toggle('nav', !!n);
@@ -537,21 +574,39 @@
   }
   const nextMan = n => n.route.man.find(m => m.at > n.prog + 2) || n.route.man[n.route.man.length - 1];
   function openPicker() {
-    if (!state.pos) { toast('بعد ما وصل موقعك من الـGPS'); return; }
     $('#pickQ').value = ''; renderPick(); $('#pickBack').hidden = false;
     setTimeout(() => { try { $('#pickQ').focus({preventScroll: true}); } catch (e) {} }, 30);
   }
   const closePicker = () => { $('#pickBack').hidden = true; };
   function renderPick() {
-    const q = $('#pickQ').value.trim();
-    const items = ZONES.map(z => { const r = computeRoute(state.pos, z); return {z, here: !!(r && r.error === 'here'), out: !!(r && r.error === 'outside'), len: r && !r.error ? r.len : Infinity}; })
-      .filter(it => !q || it.z.name.includes(q) || it.z.short.includes(q) || String(it.z.id) === q)
-      .sort((a, b) => (a.here ? -1 : 0) - (b.here ? -1 : 0) || a.len - b.len || a.z.id - b.z.id);
+    const q = norm($('#pickQ').value), raw = $('#pickQ').value.trim();
+    const route = d => { const r = state.pos ? computeRoute(state.pos, d) : null; return {here: !!(r && r.error === 'here'), out: !!(r && r.error === 'outside'), len: r && !r.error ? r.len : Infinity}; };
+    let items = [];
+    if (q) {
+      // labels first: an exact tank name, then names that start with what was typed, then the rest
+      POIS.forEach(o => { const rank = o.key === q ? 0 : o.key.startsWith(q) ? 1 : o.key.includes(q) ? 2 : -1; if (rank >= 0) items.push({poi: o, rank, ...route(poiDest(o))}); });
+      ZONES.forEach(z => { if (norm(z.name).includes(q) || norm(z.short).includes(q) || String(z.id) === raw) items.push({z, rank: 3, ...route(z)}); });
+      items.sort((a, b) => a.rank - b.rank || a.len - b.len);
+      items = items.slice(0, 40);
+    } else {
+      items = ZONES.map(z => ({z, rank: 3, ...route(z)})).sort((a, b) => (a.here ? -1 : 0) - (b.here ? -1 : 0) || a.len - b.len || a.z.id - b.z.id);
+    }
+    const sub = it => it.here ? 'إنت هنا هسه' : !state.pos ? 'اضغط حتى يبين على الخريطة' : it.out ? 'إنت برا حدود المصفى · اضغط حتى يبين على الخريطة' : isFinite(it.len) ? `${fmtDist(it.len)} · ${walkMin(it.len)} د مشي` : 'ما اكو طريق مرسوم';
     $('#pickList').innerHTML = items.length ? items.map(it => {
+      if (it.poi) {
+        const z = ZM[it.poi.zone_id];
+        return `<button class="row" type="button" data-poi="${it.poi.id}"${it.here ? ' disabled' : ''}><span class="znum sm" style="min-width:auto">${esc(it.poi.label)}</span><span class="row-main"><strong>${esc(it.poi.label)}${z ? ` · ${esc(z.short)}` : ''}</strong><span>${sub(it)}</span></span>${z && z.hz ? `<span class="chip hz">${HZ[z.hz].chip}</span>` : '<span></span>'}</button>`;
+      }
       const c = countsFor(it.z.id).total;
-      const sub = it.here ? 'إنت هنا هسه' : it.out ? 'إنت برا حدود الخريطة' : isFinite(it.len) ? `${fmtDist(it.len)} · ${walkMin(it.len)} د مشي` : 'ما اكو طريق مرسوم';
-      return `<button class="row" type="button" data-dest="${it.z.id}"${it.here ? ' disabled' : ''}><span class="znum sm${it.here ? ' here' : ''}">${it.z.id}</span><span class="row-main"><strong>${esc(it.z.name)}</strong><span>${sub}${c ? ` · ${c} شغل مفتوح` : ''}</span></span>${it.z.hz ? `<span class="chip hz">${HZ[it.z.hz].chip}</span>` : '<span></span>'}</button>`;
-    }).join('') : '<p class="empty">ما لكينا موقع بهذا الاسم.</p>';
+      return `<button class="row" type="button" data-dest="${it.z.id}"${it.here ? ' disabled' : ''}><span class="znum sm${it.here ? ' here' : ''}">${it.z.id}</span><span class="row-main"><strong>${esc(it.z.name)}</strong><span>${sub(it)}${c ? ` · ${c} شغل مفتوح` : ''}</span></span>${it.z.hz ? `<span class="chip hz">${HZ[it.z.hz].chip}</span>` : '<span></span>'}</button>`;
+    }).join('') : `<p class="empty">ما لكينا «${esc(raw)}». جرّب الاسم مثل ما مكتوب بالمخطط، مثلاً N-6 أو K-3 أو RP-2.</p>`;
+  }
+  function goTo(dest, poi) {
+    const r = state.pos ? computeRoute(state.pos, dest) : null;
+    if (r && !r.error) { state.focusPoi = poi || null; startPreview(dest); return; }
+    if (r && r.error === 'here') { toast(`إنت هسه بمكان ${dest.short}`); return; }
+    if (poi) focusPoi(poi); else selectZone(dest.id, {zoom: true, tab: 'site'});
+    if (!state.pos) toast(`هذا مكان ${dest.short}. من يوصل موقعك من الـGPS أكدر أوجهك له.`);
   }
   function startPreview(dz) {
     if (!state.pos) { toast('بعد ما وصل موقعك من الـGPS'); return; }
@@ -646,7 +701,7 @@
   function arrive() {
     const n = state.nav; if (!n || n.phase === 'arrived') return;
     stopWalk(); n.phase = 'arrived'; n.follow = false;
-    const dz = n.dest, c = countsFor(dz.id).total;
+    const dz = n.dest, c = dz.isPoi ? (dz.zone ? countsFor(dz.zone.id).total : 0) : countsFor(dz.id).total;
     say(`وصلت إلى ${dz.name}.${dz.hz ? ` انتبه، ${HZ[dz.hz].voice}.` : ''}${c ? ` الأعمال المفتوحة هنا ${c}.` : ''}`, true);
     setBodyNav(); renderNavBar(); renderRoute(); keepAwake(false);
     if (!camRaf) camRaf = requestAnimationFrame(camLoop);
@@ -658,7 +713,7 @@
     setBodyNav(); renderNavBar(); renderRoute();
     requestAnimationFrame(() => {
       applyView();
-      if (showZone) { selectZone(n.dest.id, {zoom: true, tab: 'site'}); $('.panel').scrollIntoView({block: 'start'}); }
+      if (showZone && destZone(n.dest)) { selectZone(destZone(n.dest), {zoom: true, tab: 'site'}); $('.panel').scrollIntoView({block: 'start'}); }
       else if (state.pos) centerOn(state.pos.x, state.pos.y);
     });
   }
@@ -698,7 +753,7 @@
     if (n.phase === 'preview') {
       navBanner.hidden = true; $('#navThen').hidden = true; $('#btnRecenter').hidden = true;
       const turns = Rt.man.filter(m => m.type !== 'arrive').length;
-      navBar.innerHTML = `<div class="nv-dest"><span class="znum lg">${dz.id}</span><div style="min-width:0"><strong>${esc(dz.name)}</strong><span class="sub">عبر ${esc(Rt.roads.map(r => r.name).join('، ') || 'طريق مباشر')}</span></div></div>
+      navBar.innerHTML = `<div class="nv-dest"><span class="znum lg">${dz.isPoi ? esc(dz.short) : dz.id}</span><div style="min-width:0"><strong>${esc(dz.name)}</strong><span class="sub">عبر ${esc(Rt.roads.map(r => r.name).join('، ') || 'طريق مباشر')}</span></div></div>
         <div class="nv-stats"><div class="nv-stat"><b>${walkMin(Rt.len)} د</b><span>مشي</span></div><div class="nv-stat"><b>${carMin(Rt.len)} د</b><span>سيارة · حد 20 كم/س</span></div><div class="nv-stat"><b>${fmtDist(Rt.len)}</b><span>${turnsWord(turns)}</span></div></div>
         ${dz.hz ? `<p class="hz-note"><b>${HZ[dz.hz].label}.</b> ${HZ[dz.hz].note}</p>` : ''}
         <div class="nv-actions"><button class="btn go" type="button" data-nav="go">${NAV_ICO}انطلق</button><button class="btn" type="button" data-nav="cancel">إلغاء</button></div>`;
@@ -713,9 +768,9 @@
       navBanner.hidden = false; $('#navThen').hidden = true; $('#btnRecenter').hidden = true;
       const nb = $('#nbIco'); nb.innerHTML = ICON.arrive; nb.dataset.ico = 'arrive';
       $('#nbDist').textContent = 'وصلت'; $('#nbText').textContent = dz.name;
-      navBar.innerHTML = `<div class="nv-dest"><span class="znum lg here">${dz.id}</span><div style="min-width:0"><strong>${esc(dz.name)}</strong><span class="sub">${esc(dz.kind)}</span></div></div>
+      navBar.innerHTML = `<div class="nv-dest"><span class="znum lg here">${dz.isPoi ? esc(dz.short) : dz.id}</span><div style="min-width:0"><strong>${esc(dz.name)}</strong><span class="sub">${esc(dz.kind)}</span></div></div>
         ${dz.hz ? `<p class="hz-note"><b>${HZ[dz.hz].label}.</b> ${HZ[dz.hz].note}</p>` : ''}
-        <div class="nv-actions"><button class="btn go" type="button" data-nav="works">الأعمال بهذا الموقع (${countsFor(dz.id).total})</button><button class="btn" type="button" data-nav="cancel">إنهاء</button></div>`;
+        <div class="nv-actions">${destZone(dz) ? `<button class="btn go" type="button" data-nav="works">الأعمال بهذا الموقع (${countsFor(destZone(dz)).total})</button>` : ''}<button class="btn" type="button" data-nav="cancel">إنهاء</button></div>`;
     }
     requestAnimationFrame(() => document.documentElement.style.setProperty('--barh', navBar.offsetHeight + 'px'));
   }
@@ -733,7 +788,12 @@
   $('#pickClose').addEventListener('click', closePicker);
   $('#pickBack').addEventListener('click', e => { if (e.target.id === 'pickBack') closePicker(); });
   $('#pickQ').addEventListener('input', renderPick);
-  $('#pickList').addEventListener('click', e => { const b = e.target.closest('button[data-dest]'); if (!b || b.disabled) return; closePicker(); startPreview(ZM[+b.dataset.dest]); });
+  $('#pickList').addEventListener('click', e => {
+    const b = e.target.closest('button[data-dest],button[data-poi]'); if (!b || b.disabled) return;
+    closePicker();
+    if (b.dataset.poi) { const o = POIS.find(x => x.id === +b.dataset.poi); if (o) goTo(poiDest(o), o); }
+    else goTo(ZM[+b.dataset.dest]);
+  });
   document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!$('#pickBack').hidden) closePicker(); else if (state.nav && state.nav.phase === 'preview') endNav(false); });
 
   /* ---------- rendering ---------- */
@@ -757,7 +817,8 @@
     $('#here').classList.toggle('outside', !z);
     if (z) {
       $('#hereName').innerHTML = `<span class="znum here">${z.id}</span><span>${esc(z.name)}</span>`;
-      $('#hereSub').innerHTML = `${esc(z.kind)}${z.temp ? ' · <span class="muted">اسم مؤقت</span>' : ''}`;
+      const np = nearestPoi(p, 35);
+      $('#hereSub').innerHTML = `${np ? `قرب <b class="mono">${esc(np.label)}</b> · ` : ''}${esc(z.kind)}${z.temp ? ' · <span class="muted">اسم مؤقت</span>' : ''}`;
     } else if (inSite) {
       const n = nearestZone(p), r = ROADS.length ? nearestOnRoads(p) : null;
       $('#hereName').innerHTML = `<span class="znum road">—</span><span>${r && r.d < 25 ? 'على ' + esc(ROADS[r.ri].name) : 'بين المواقع'}</span>`;
@@ -839,10 +900,11 @@
     if (state.draw) return `<p class="note">${state.draw.mode === 'new' ? 'ارسم الموقع الجديد على الخريطة: اضغط على زواياه وحدة وحدة، وبعدين «تم».' : 'ارسم الحدود الجديدة على الخريطة، وبعدين «تم».'}</p>`;
     const z = ZM[state.selectedId];
     if (!z) return `<p class="empty">اضغط على أي موقع بالخريطة حتى تشوف تفاصيله والعمال اللي بيه.</p>${isSup() ? `<button class="sbtn ghost" type="button" data-act="znew">${PLUS_ICO}إضافة موقع جديد</button>` : ''}`;
-    const isHere = z.id === state.hereId, ws = state.works.filter(w => w.zone_id === z.id).sort(byStatus);
+    const isHere = z.id === state.hereId, ws = state.works.filter(w => w.zone_id === z.id).sort(byStatus), poisIn = POIS.filter(o => o.zone_id === z.id);
     const sup = isSup();
     return `<div class="zhead"><span class="znum lg${isHere ? ' here' : ''}">${z.id}</span><div style="min-width:0"><h2>${esc(z.name)}</h2><p>${esc(z.kind)}</p></div></div>
       <div class="chips">${isHere ? '<span class="chip you">أنت هنا الآن</span>' : `<button class="sbtn navgo" type="button" data-act="nav">${NAV_ICO}ودّيني هنا</button>`}${z.hz ? `<span class="chip hz">${HZ[z.hz].label}</span>` : ''}${z.isNew ? '<span class="chip new">انبنى بعد 2023</span>' : ''}${z.temp ? '<span class="chip temp">اسم مؤقت</span>' : ''}</div>
+      ${poisIn.length ? `<div class="chips"><span class="small muted">اضغط على الاسم حتى أوجهك له:</span>${poisIn.map(o => `<button class="chip tank" type="button" data-poi="${o.id}">${esc(o.label)}</button>`).join('')}</div>` : ''}
       ${sup && state.zoneForm && state.zoneForm.mode === 'edit' ? zoneFormHTML(z) : ''}
       ${sup && !state.zoneForm ? `<div class="chips"><button class="sbtn" type="button" data-act="zedit">${EDIT_ICO}تعديل الاسم</button><button class="sbtn" type="button" data-act="zshape">${SHAPE_ICO}تعديل الحدود</button><button class="sbtn del${state.zoneDelArm ? ' confirm' : ''}" type="button" data-act="zdel">${state.zoneDelArm ? 'اضغط مرة ثانية للحذف' : 'حذف الموقع'}</button></div>` : ''}
       ${z.temp && !state.zoneForm ? `<p class="note">هذا اسم مؤقت، والحدود تقريبية.${sup ? ' إذا تعرف اسمه الصحيح اضغط «تعديل الاسم».' : ''}</p>` : ''}
@@ -895,7 +957,7 @@
     applySite(site); state.works = works || [];
     if (state.pos) { const z = zoneAt(state.pos); state.hereId = z ? z.id : null; }
     renderDyn(); applyView(); renderZones(); renderHere();
-    if (state.nav && !ZM[state.nav.dest.id]) endNav(false);
+    if (state.nav && (state.nav.dest.isPoi ? !POIS.some(o => 'p' + o.id === state.nav.dest.id) : !ZM[state.nav.dest.id])) endNav(false);
     if (!panelBusy()) renderPanel();
   }
   async function mutate(fn, msg) {
@@ -923,7 +985,8 @@
     if (b.dataset.goto) { selectZone(+b.dataset.goto, {zoom: true, tab: 'site'}); return; }
     if (b.dataset.filter) { state.filter = b.dataset.filter; $$('.fchip').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.filter === state.filter))); renderWorksList(); return; }
     const act = b.dataset.act, id = b.dataset.w;
-    if (act === 'nav') { startPreview(ZM[state.selectedId]); return; }
+    if (b.dataset.poi) { const o = POIS.find(x => x.id === +b.dataset.poi); if (o) goTo(poiDest(o), o); return; }
+    if (act === 'nav') { goTo(ZM[state.selectedId]); return; }
     if (act === 'here') { goHere(); return; }
     if (!isSup()) return;
     if (act === 'znew') { state.tab = 'site'; startDraw('new'); return; }
@@ -977,6 +1040,9 @@
   $$('.tab').forEach(t => t.addEventListener('click', () => { state.tab = t.dataset.tab; state.formOpen = false; state.zoneForm = null; renderPanel(); }));
 
   /* ---------- controls ---------- */
+  const btnPlan = $('#btnPlan');
+  function setPlan(on) { state.plan = on; btnPlan.setAttribute('aria-pressed', String(on)); const el = $('#layerPlan'); if (el) el.style.display = on ? '' : 'none'; svg.classList.toggle('plan-on', on); }
+  btnPlan.addEventListener('click', () => { setPlan(!state.plan); toast(state.plan ? 'المخطط ظاهر فوق صورة القمر الصناعي' : 'المخطط مخفي'); });
   const btnLayer = $('#btnLayer');
   function setAttrib() { $('#attrib').textContent = state.layer26 ? `Copernicus Sentinel-2 · ${CONFIG && CONFIG.layer2026 ? CONFIG.layer2026.date : ''}` : 'Imagery © Esri, Vantor'; }
   btnLayer.addEventListener('click', () => {
@@ -1023,7 +1089,11 @@
     if (!site.config) { $('#loading').textContent = 'الخريطة بعدها ما انضافت لقاعدة البيانات.'; return; }
     CONFIG = site.config; setupGeo(CONFIG);
     $('#loading').hidden = true; $('#app').hidden = false;
-    if (!started) { started = true; buildStatic(); new ResizeObserver(() => applyView()).observe(svg); }
+    if (!started) {
+      started = true; buildStatic(); new ResizeObserver(() => applyView()).observe(svg);
+      $('#layerPlan').addEventListener('error', () => { btnPlan.hidden = true; setPlan(false); });
+      setPlan(true);
+    }
     applySite(site); state.works = works || [];
     renderDyn(); setAttrib(); fitView(); renderZones(); renderPanel();
     startGps();

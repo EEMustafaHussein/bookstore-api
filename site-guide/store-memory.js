@@ -2,7 +2,7 @@
 // In-memory store for local development. Optional SEED_FILE (JSON: config, zones, roads, features) and LAYER_FILE (image).
 const fs = require('fs');
 
-let v = 1, config = null, zones = [], roads = [], features = [], works = [], layer = null;
+let v = 1, config = null, zones = [], roads = [], features = [], pois = [], works = [], layer = null;
 const bump = () => { v += 1; };
 
 module.exports = {
@@ -10,11 +10,12 @@ module.exports = {
     if (process.env.SEED_FILE) {
       const s = JSON.parse(fs.readFileSync(process.env.SEED_FILE, 'utf8'));
       config = s.config || null; zones = s.zones || []; roads = s.roads || []; features = s.features || [];
+      pois = (s.pois || []).map((p, i) => ({id: i + 1, ...p}));
     }
     if (process.env.LAYER_FILE) layer = {mime: 'image/jpeg', data: fs.readFileSync(process.env.LAYER_FILE)};
   },
   async version() { return v; },
-  async site() { return {config, zones, roads, features, version: v}; },
+  async site() { return {config, zones, roads, features, pois, version: v}; },
   async works() { return works; },
   async blob() { return layer; },
   async addZone(z) {

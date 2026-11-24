@@ -32,6 +32,22 @@ function readToken(req) {
 }
 const same = (a, b) => { const x = crypto.createHash('sha256').update(String(a)).digest(), y = crypto.createHash('sha256').update(String(b)).digest(); return crypto.timingSafeEqual(x, y); };
 
+/* ---------- site plan overlay: stored encrypted (AES-256-GCM: iv | tag | data), key only in the environment ---------- */
+let planCache;
+function planImage() {
+  if (planCache !== undefined) return planCache;
+  planCache = null;
+  try {
+    const key = Buffer.from(process.env.OVERLAY_KEY || '', 'hex');
+    if (key.length !== 32) return null;
+    const buf = fs.readFileSync(path.join(__dirname, 'assets', 'plan.bin'));
+    const d = crypto.createDecipheriv('aes-256-gcm', key, buf.subarray(0, 12));
+    d.setAuthTag(buf.subarray(12, 28));
+    planCache = Buffer.concat([d.update(buf.subarray(28)), d.final()]);
+  } catch (e) { console.error('plan overlay unavailable:', e.message); }
+  return planCache;
+}
+
 /* ---------- login rate limit ---------- */
 const attempts = new Map();
 function limited(ip) {
@@ -122,6 +138,12 @@ async function api(req, res, url) {
   if (p === '/api/version' && m === 'GET') return send(res, 200, {v: await store.version()});
   if (p === '/api/site' && m === 'GET') return send(res, 200, await store.site());
   if (p === '/api/works' && m === 'GET') return send(res, 200, await store.works());
+  if (p === '/api/layer/plan' && m === 'GET') {
+    const img = planImage();
+    if (!img) return send(res, 404, {error: 'not_found'});
+    res.writeHead(200, {'Content-Type': 'image/png', 'Cache-Control': 'private, max-age=86400'});
+    return res.end(img);
+  }
   if (p === '/api/layer/2026' && m === 'GET') {
     const blob = await store.blob('layer2026');
     if (!blob) return send(res, 404, {error: 'not_found'});

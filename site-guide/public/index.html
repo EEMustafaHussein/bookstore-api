@@ -162,6 +162,16 @@ p{margin:0}
 .ct{fill:var(--map-badge);font:600 10px var(--f-mono);text-anchor:middle;dominant-baseline:central}
 .lbl .nm{font:600 12px var(--f-body);fill:var(--map-line);text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--map-halo);stroke-width:4px;stroke-linejoin:round;display:none}
 #map.show-names .lbl .nm{display:inline}
+.poi{pointer-events:none;display:none}
+#map.show-pois .poi{display:inline}
+#map.plan-on .poi{display:none}
+.poi .pd{fill:var(--map-line);stroke:var(--map-badge);stroke-width:1.5}
+.poi .pt{font:600 11px var(--f-mono);fill:var(--map-line);text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--map-halo);stroke-width:3.5px;stroke-linejoin:round}
+#focusMark{pointer-events:none}
+.fm-ring{fill:none;stroke:var(--danger);stroke-width:3}
+.fm-txt{font:700 13px var(--f-mono);fill:#fff;text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--danger);stroke-width:5px;stroke-linejoin:round}
+.chip.tank{cursor:pointer;background:var(--surface);color:var(--ink);font-family:var(--f-mono)}
+.chip.tank:hover{background:var(--surface-2)}
 .r-case{fill:none;stroke:var(--route-case);stroke-width:12;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .r-line{fill:none;stroke:var(--map-you);stroke-width:7;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .pin-b{fill:var(--danger);stroke:var(--map-line);stroke-width:2.5}
@@ -335,6 +345,7 @@ p{margin:0}
         <svg id="map" role="application" aria-label="خريطة المصفى. اسحب للتحريك، واستخدم أزرار التكبير."></svg>
         <div class="map-top">
           <button class="tbtn" id="btnGps" type="button" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M3 11 21 3l-8 18-2-8-8-2z"/></svg>GPS</button>
+          <button class="tbtn" id="btnPlan" type="button" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M4 10h7v9M11 5v5M15 13h5"/></svg>المخطط</button>
           <button class="tbtn" id="btnLayer" type="button" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5"/></svg>صورة 2026</button>
           <button class="tbtn" id="btnSim" type="button" aria-pressed="false" hidden><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.8-6.5-10.4a6.5 6.5 0 0 1 13 0C18.5 15.2 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.3"/></svg>محاكاة</button>
         </div>
@@ -384,7 +395,7 @@ p{margin:0}
   <div class="sheet-back" id="pickBack" hidden>
     <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
       <div class="sheet-h"><h2 id="pickTitle">وين رايح؟</h2><button class="icon-btn" type="button" id="pickClose" aria-label="إغلاق"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-      <label class="search" for="pickQ"><span class="sr">ابحث عن موقع</span><input id="pickQ" type="search" placeholder="اكتب اسم الموقع أو رقمه" autocomplete="off"></label>
+      <label class="search" for="pickQ"><span class="sr">ابحث عن موقع</span><input id="pickQ" type="search" placeholder="اكتب اسم الخزان أو الوحدة، مثل N-6 أو RP-3" autocomplete="off"></label>
       <div class="list" id="pickList"></div>
     </section>
   </div>
